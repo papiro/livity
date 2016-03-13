@@ -1,4 +1,27 @@
 var livity = livity || {}
+livity.util = (function() {
+
+var util = {
+  each: function (obj, callback) {
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        callback(key, obj[key], obj)
+      }
+    }
+  },
+  extend: function () {
+    return Array.prototype.slice.call(arguments, 1).reduce(function (previous, current) {
+      util.each(current, function (key, val) {
+        previous[key] = val
+      })
+      return previous
+    }, arguments[0])
+  }
+}
+
+return util
+})()
+var livity = livity || {}
 livity.ajax = (function() {
 
 var ajax = {}
@@ -255,35 +278,18 @@ htmlElement.prototype = {
 
 return dom
 })()
-livity.dom.DOMContentLoaded(function () {
-  var util = livity.util
-  var dom = livity.dom
+window.livity = livity || {}
+livity.generate = (function() {
 
-  dom('[data-dropup-options]').listen('click', function (evt) {
-    var options_dialog = {
-      '<div>': {
-        'position': 'absolute',
-        'left': evt.target.offsetLeft,
-        'top': evt.target.offsetTop,
-        'width': 'auto',
-        'background-color': 'black',
-        'border': '0.2em solid yellow'
-      }
-    }
-
-    var options = JSON.parse(this.at('data-dropup-options').trim())
-    var dropup = dom.generate(options_dialog)
-
-    util.each(options, function (text, link) {
-      dropup.append(dom.create('<a href='+link+'>').text(text))
-    })
-
-    dropup.appendTo('body')
-
-    dom(window).listen('click', function (evt) {
-      dropup.remove()
-    })
+var generate = function(domstruct) {
+  var newNodes = []
+  util.each(config, function(element, properties) {
+    newNodes.push(dom.create(element).style(properties))
   })
+  return newNodes.length === 1 ? newNodes[0] : newNodes
+}
+
+return generate
 })
 var livity = livity || {}
 livity.event = (function() {
@@ -366,6 +372,49 @@ dom.DOMContentLoaded = function (callback) {
 
 return event
 })()
+var livity = livity || {}
+livity.router = (function() {
+
+var dom = livity.dom
+,   ajax = livity.ajax
+
+var router = function (view) {
+  dom().listen('hashchange', function() {
+    var hash = window.location.hash
+    ajax.GET(dom('#'+hash.slice(1)).at('src'), function (req) {
+      dom(view).inner(req.response)
+      dom(document).trigger('view.'+hash.slice(2))
+    })
+    router.initialized = true
+  })
+  window.location.hash && !router.initialized && dom().trigger('hashchange')
+}
+
+return router
+})()
+livity.css.buildStylesheet([
+  '.livity-overlay {\
+    display: none;\
+    position: fixed;\
+    top: 7%;\
+    right: 0;\
+    bottom: 7%;\
+    left: 0;\
+  }',
+  '.livity-overlay-x {\
+    position: fixed;\
+    z-index: 1;\
+    color: hsla(0, 0%, 75%, 0.65);\
+    text-shadow: 0 0 0.2em black;\
+    cursor: pointer;\
+    top: 12%;\
+    right: 5%;\
+    font-size: 60px;\
+  }',
+  '.livity-overlay-x:hover {\
+    color: hsla(81, 44%, 75%, 1);\
+  }'
+])
 var livity = livity || {}
 livity.WebUIComponents = livity.WebUIComponents || []
 
@@ -517,82 +566,33 @@ livity.WebUIComponents.push((function() {
   }
   return gallery
 })())
-window.livity = livity || {}
-livity.generate = (function() {
+livity.dom.DOMContentLoaded(function () {
+  var util = livity.util
+  var dom = livity.dom
 
-var generate = function(domstruct) {
-  var newNodes = []
-  util.each(config, function(element, properties) {
-    newNodes.push(dom.create(element).style(properties))
-  })
-  return newNodes.length === 1 ? newNodes[0] : newNodes
-}
-
-return generate
-})
-livity.css.buildStylesheet([
-  '.livity-overlay {\
-    display: none;\
-    position: fixed;\
-    top: 7%;\
-    right: 0;\
-    bottom: 7%;\
-    left: 0;\
-  }',
-  '.livity-overlay-x {\
-    position: fixed;\
-    z-index: 1;\
-    color: hsla(0, 0%, 75%, 0.65);\
-    text-shadow: 0 0 0.2em black;\
-    cursor: pointer;\
-    top: 12%;\
-    right: 5%;\
-    font-size: 60px;\
-  }',
-  '.livity-overlay-x:hover {\
-    color: hsla(81, 44%, 75%, 1);\
-  }'
-])
-var livity = livity || {}
-livity.router = (function() {
-
-var dom = livity.dom
-,   ajax = livity.ajax
-
-var router = function (view) {
-  dom().listen('hashchange', function() {
-    var hash = window.location.hash
-    ajax.GET(dom('#'+hash.slice(1)).at('src'), function (req) {
-      dom(view).inner(req.response)
-      dom(document).trigger('view.'+hash.slice(2))
-    })
-    router.initialized = true
-  })
-  window.location.hash && !router.initialized && dom().trigger('hashchange')
-}
-
-return router
-})()
-var livity = livity || {}
-livity.util = (function() {
-
-var util = {
-  each: function (obj, callback) {
-    for (var key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        callback(key, obj[key], obj)
+  dom('[data-dropup-options]').listen('click', function (evt) {
+    var options_dialog = {
+      '<div>': {
+        'position': 'absolute',
+        'left': evt.target.offsetLeft,
+        'top': evt.target.offsetTop,
+        'width': 'auto',
+        'background-color': 'black',
+        'border': '0.2em solid yellow'
       }
     }
-  },
-  extend: function () {
-    return Array.prototype.slice.call(arguments, 1).reduce(function (previous, current) {
-      util.each(current, function (key, val) {
-        previous[key] = val
-      })
-      return previous
-    }, arguments[0])
-  }
-}
 
-return util
-})()
+    var options = JSON.parse(this.at('data-dropup-options').trim())
+    var dropup = dom.generate(options_dialog)
+
+    util.each(options, function (text, link) {
+      dropup.append(dom.create('<a href='+link+'>').text(text))
+    })
+
+    dropup.appendTo('body')
+
+    dom(window).listen('click', function (evt) {
+      dropup.remove()
+    })
+  })
+})
