@@ -85,11 +85,14 @@ livity.WebUIComponents.push((function() {
         thumb: this.next()
       }], position = 1, x = dom('[data-x]')
 
-      for (var i = 0; i < cache.length; i++) {
-        cache[i].img = newPreloadedImage(cache[i].thumb)
-      }
+      // Load the clicked image
+      cache[1].img = newPreloadedImage(cache[1].thumb)
 
+      // When the first image is finished loading, pre-load the previous and the next
       dom(cache[1].img).listen('load', function() {
+        for (var i=0, j=[0,2]; i<2; i++) {
+          cache[j[i]].img = newPreloadedImage(cache[j[i]].thumb)
+        }
         positionGalleryControls(this)
         x.show()
       })

@@ -28,7 +28,7 @@ if (dom && dom.htmlElement) {
       if (handlerRef = listeners[this.selector][verboseEventType][handlerKey]) {
         if (options.cache) return this
         if (!options.stack) {
-          this.unlisten(eventType, handlerRef[0])
+          this.unlisten(eventType, handlerRef)
           delete listeners[this.selector][verboseEventType][handlerKey]          
         }
       } 
