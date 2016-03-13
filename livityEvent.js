@@ -26,11 +26,11 @@ if (dom && dom.htmlElement) {
       listeners[this.selector][verboseEventType] = listeners[this.selector][verboseEventType] || {}
       var handlerKey = handler.toString(), handlerRef
       if (handlerRef = listeners[this.selector][verboseEventType][handlerKey]) {
-        if (!options.cache) {
-          //  TODO: create an 'unlisten'
-          this.native.removeEventListener(eventType, handlerRef)
-          delete listeners[this.selector][verboseEventType][handlerKey]
-        } else return this
+        if (options.cache) return this
+        if (!options.stack) {
+          this.unlisten(eventType, handlerRef[0])
+          delete listeners[this.selector][verboseEventType][handlerKey]          
+        }
       } 
 
       listeners[this.selector][verboseEventType][handlerKey] = wrappedHandler
@@ -50,8 +50,8 @@ if (dom && dom.htmlElement) {
       this.native.addEventListener(eventType, listeners[this.selector][verboseEventType][handlerKey])
       return this 
     }),
-    unlisten: dom.safe(function () {
-
+    unlisten: dom.safe(function (eventType, handlerRef) {
+      this.native.removeEventListener(eventType, handlerRef)
     }),
     trigger: dom.safe(function (eventName, detail) {
       var customEvent = function () {
@@ -74,7 +74,7 @@ dom.DOMContentLoaded = function (callback) {
   if( document.readyState === 'complete' ) return callback()
   dom(document).listen('DOMContentLoaded', function() {
     callback()
-  })
+  }, {stack: true})
 }
 
 return event
