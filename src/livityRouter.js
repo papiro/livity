@@ -3,7 +3,6 @@ livity.router = (function() {
 
 var dom = livity.dom
 ,   ajax = livity.ajax
-,   event = livity.event
 
 var router = function (view) {
   dom().listen('hashchange', function() {

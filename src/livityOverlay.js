@@ -9,6 +9,7 @@ livity.css.buildStylesheet([
   }',
   '.livity-overlay-x {\
     position: fixed;\
+    z-index: 1;\
     color: hsla(0, 0%, 75%, 0.65);\
     text-shadow: 0 0 0.2em black;\
     cursor: pointer;\

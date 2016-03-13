@@ -16,11 +16,13 @@ livity.css.buildStylesheet([
     margin: 0.7em;\
   }',
   '[data-livity-gallery-overlay] img {\
+    position: relative;\
     margin: auto;\
     width: auto;\
     max-width: 100%;\
     max-height: 100%;\
     box-shadow: 0 0 7em 5em hsla(100, 100%, 0%, 0.8);\
+    transition: left 4s, right 4s;\
   }',
   '.livity-overlay-right,\
   .livity-overlay-left {\
@@ -30,6 +32,7 @@ livity.css.buildStylesheet([
   }',
   '.livity-overlay-right,\
   .livity-overlay-left {\
+    z-index: 1;\
     top: 45%;\
     font-size: 4em;\
   }',
@@ -114,7 +117,7 @@ livity.WebUIComponents.push((function() {
         var step = direction.next ? 1 : -1
         position += step
         if (cache[position].img) {
-          var img = this.find('img').replaceWith(cache[position].img)
+          var img = this.find('img').style('left', -900)//.replaceWith(cache[position].img)
           positionGalleryControls(img);
           if (!cache[position+step]) {
             var thumb = cache[position].thumb[position ? "next" : "previous"]()

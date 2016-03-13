@@ -8,7 +8,8 @@
     "prerelease": "git commit -a || true",
     "release": "npm version ",
     "postrelease": "git push & git push --tags & npm publish",
-    "build": "uglifyjs src/* --compress --mangle --screw-ie8 -o dist/livity.min.js --source-map dist/livity.min.js.map"
+    "prebuild": "cat src/*.js > dist/livity.js",
+    "build": "uglifyjs dist/livity.js --compress --mangle --screw-ie8 -o dist/livity.min.js --source-map dist/livity.min.js.map"
   },
   "repository": {
     "type": "git",
