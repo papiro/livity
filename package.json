@@ -1,6 +1,6 @@
 {
   "name": "livityjs",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "A general-purpose lightweight javaScript library.",
   "main": "index.js",
   "scripts": {
