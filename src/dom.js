@@ -172,8 +172,18 @@ htmlElement.prototype = {
     this.native.appendChild(elem)
     return this
   }),
+  prepend: safe(function (elem) {
+    elem = elem instanceof htmlElement ? elem.native : elem
+    this.native.insertBefore(elem, this.native.firstChild)
+    return this
+  }),
   appendTo: safe(function (elem) {
-    return dom(elem).append(this)
+    dom(elem).append(this)
+    return this
+  }),
+  prependTo: safe(function (elem) {
+    dom(elem).prepend(this)
+    return this
   }),
   inner: safe(function (elem) {
     this.clear()
@@ -191,7 +201,7 @@ htmlElement.prototype = {
   }),
   remove: safe(function (elem) {
     elem = ( typeof elem === 'string' ? dom(elem).native : elem ) || this.native
-    elem.parentNode.removeChild(elem)
+    elem.parentNode && elem.parentNode.removeChild(elem)
     return elem
   }),
   replaceWith: safe(function (elem) {

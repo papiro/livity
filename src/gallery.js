@@ -22,7 +22,6 @@ livity.css.buildStylesheet([
     max-width: 100%;\
     max-height: 100%;\
     box-shadow: 0 0 7em 5em hsla(100, 100%, 0%, 0.8);\
-    transition: left 4s, right 4s;\
   }',
   '.livity-overlay-right,\
   .livity-overlay-left {\
