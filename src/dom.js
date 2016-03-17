@@ -113,8 +113,8 @@ htmlElement.prototype = {
         this.style(prop, val)
       }.bind(this))
       return this
-    } else if (val) {
-      if (typeof val === 'number') val += 'px'
+    } else if (val !== undefined && val !== null) {
+      if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
       this.native.style[prop] = val
       return this
     } else {
@@ -131,7 +131,7 @@ htmlElement.prototype = {
     
     return this
   }),
-  offset: safe(function (set) {
+  offset: safe(function () {
     return {
       top: this.native.offsetTop,
       left: this.native.offsetLeft,
@@ -151,14 +151,15 @@ htmlElement.prototype = {
     return this.native.offsetWidth
   }),
   innerWidth: safe(function () {
-    return this.native.clientWidth
+    if (this.selector === 'window') return this.native.innerWidth
+    else return this.native.clientWidth
   }),
   outerWidth: safe(function () {
     return this.native.scrollWidth
   }),
-  show: safe(function () {
+  show: safe(function (block) {
     var elemStyle = this.native.style
-    elemStyle.display = 'flex'
+    elemStyle.display = block ? 'block' : 'flex'
     elemStyle.visibility = 'visible'
     return this
   }),
