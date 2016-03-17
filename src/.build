@@ -1,7 +1,7 @@
 util
 ajax
-cssom
 dom
+cssom
 generate
 event
 router
