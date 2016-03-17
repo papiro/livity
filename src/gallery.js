@@ -99,9 +99,13 @@ livity.WebUIComponents.push((function() {
         x.show()
       })
       x.hide(true)
+      var originalBodyOverflow = dom('body').style('overflow')
+      dom('body').style('overflow', 'hidden')
+
       dom('[data-livity-gallery-overlay]')
         .append(cache[1].img)
         .listen('click on [data-x]', function (evt, overlay) {
+          dom('body').style('overflow', originalBodyOverflow)
           overlay.hide().find('img').remove()
         }, {cache: true})
         .listen('click on [data-right]', function (evt, overlay) {
@@ -110,14 +114,31 @@ livity.WebUIComponents.push((function() {
         .listen('click on [data-left]', function (evt, overlay) {
           scroll.call(overlay, {prev: true})
         })
-        .show()
+      .show()
 
       function scroll (direction) {
-        var step = direction.next ? 1 : -1
+        var next = direction.next, step = next ? 1 : -1
         position += step
         if (cache[position].img) {
-          var img = this.find('img').style('left', -900)//.replaceWith(cache[position].img)
-          positionGalleryControls(img);
+          var oldImg = this.find('img')
+          var newImg = dom(cache[position].img)
+
+          newImg
+            [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
+            .transition('margin-' + (next ? 'right' : 'left'), '1s ease-out', -dom(window).innerWidth(), 0)
+
+          oldImg
+            .transition(
+              'margin-' + (next ? 'right' : 'left'), '1s ease-out', 0, -dom(window).innerWidth(),
+              'opacity', '1s ease-out', 1, 0
+            ).listen('transitionend', transitionendHandler)
+
+          function transitionendHandler () {
+            positionGalleryControls(newImg)
+            this.at('style', '').remove()            
+            this.unlisten('transitionend', transitionendHandler)
+          }
+
           if (!cache[position+step]) {
             var thumb = cache[position].thumb[position ? "next" : "previous"]()
             cache[position ? "push" : "unshift"]({
