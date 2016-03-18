@@ -123,6 +123,11 @@ livity.WebUIComponents.push((function() {
           var oldImg = this.find('img')
           ,   newImg = dom(cache[position].img)
           ,   windowInnerWidth = dom(window).innerWidth()
+          ,   transitionendHandler = function () {
+            positionGalleryControls(newImg)
+            this.at('style', '').remove()            
+            this.unlisten('transitionend', transitionendHandler)
+          }
 
           toggleGalleryControls(false)
 
@@ -138,11 +143,6 @@ livity.WebUIComponents.push((function() {
               'margin-' + (next ? 'right' : 'left'), '1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
               'opacity', '1s ease-out', 0, 1)
 
-          function transitionendHandler () {
-            positionGalleryControls(newImg)
-            this.at('style', '').remove()            
-            this.unlisten('transitionend', transitionendHandler)
-          }
 
           if (!cache[position+step]) {
             var thumb = cache[position].thumb[position ? "next" : "previous"]()
