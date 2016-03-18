@@ -106,7 +106,7 @@ livity.WebUIComponents.push((function() {
         .append(cache[1].img)
         .listen('click on [data-x]', function (evt, overlay) {
           dom('body').style('overflow', originalBodyOverflow)
-          overlay.hide().find('img').remove()
+          overlay.hide().deregisterEvents().find('img').remove()
         }, {cache: true})
         .listen('click on [data-right]', function (evt, overlay) {
           scroll.call(overlay, {next: true})
