@@ -95,7 +95,7 @@ util.extend(dom.htmlElement.prototype, {
     }
 
     function wrappedHandlerOnce (evt) {
-      wrappedHandler(evt)
+      wrappedHandler.call(this, evt)
       dom(this).unlisten(eventType, handler)
     }
 

@@ -167,6 +167,9 @@ htmlElement.prototype = {
     this.native.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
     return this
   }),
+  toggle: safe(function (show) {
+    return this[show ? 'show' : 'hide']()
+  }),
   append: safe(function (elem) {
     elem = elem instanceof htmlElement ? elem.native : elem
     this.native.appendChild(elem)

@@ -121,17 +121,22 @@ livity.WebUIComponents.push((function() {
         position += step
         if (cache[position].img) {
           var oldImg = this.find('img')
-          var newImg = dom(cache[position].img)
+          ,   newImg = dom(cache[position].img)
+          ,   windowInnerWidth = dom(window).innerWidth()
 
-          newImg
-            [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
-            .transition('margin-' + (next ? 'right' : 'left'), '1s ease-out', -dom(window).innerWidth(), 0)
+          toggleGalleryControls(false)
 
           oldImg
             .transition(
-              'margin-' + (next ? 'right' : 'left'), '1s ease-out', 0, -dom(window).innerWidth(),
+              'margin-' + (next ? 'right' : 'left'), '1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
               'opacity', '1s ease-out', 1, 0
             ).listen('transitionend', transitionendHandler)
+
+          newImg
+            [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
+            .transition(
+              'margin-' + (next ? 'right' : 'left'), '1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
+              'opacity', '1s ease-out', 0, 1)
 
           function transitionendHandler () {
             positionGalleryControls(newImg)
@@ -158,8 +163,15 @@ livity.WebUIComponents.push((function() {
         return img.src && img
       }
 
+      function toggleGalleryControls (on) {
+        dom('[data-x]').toggle(on)
+        dom('[data-right]').toggle(on)
+        dom('[data-left]').toggle(on)
+      }
+
       function positionGalleryControls (img) {
         var x = dom('[data-x]')
+        toggleGalleryControls(true)
         x.style({
           top: dom(img).offset().top + x.height() + 'px',
           right: dom(img).offset().left + x.width() + 'px'
