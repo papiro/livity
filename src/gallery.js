@@ -91,7 +91,7 @@ livity.WebUIComponents.push((function() {
       cache[1].img = newPreloadedImage(cache[1].thumb)
 
       // When the first image is finished loading, pre-load the previous and the next
-      dom(cache[1].img).listen('load', function() {
+      dom(cache[1].img).listenOnce('load', function() {
         for (var i=0, j=[0,2]; i<2; i++) {
           cache[j[i]].img = newPreloadedImage(cache[j[i]].thumb)
         }

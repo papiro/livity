@@ -26,14 +26,15 @@ util.extend(Listener.prototype, {
       console.log("Just reached %s event listeners", _listeners.length)
     }
   },
-  // DOC: Does not consider delegated targets when unregisterting
-  unregister: function () {
-    handlerIndices(this.handler).filter(function (i) {
-      return _listeners[i].type === this.type && _listeners[i].elem === this.elem  
-    }).forEach(function (i) {
+  // DOC: Does not consider delegated targets when deregisterting
+  deregister: function () {
+    Listener.handlerIndices(this.handler).filter(function (i) {
+      return _listeners[i].type === this.type && _listeners[i].elem.native === this.elem.native
+    }, this).forEach(function (i) {
       _originalHandlers.splice(i, 1)
-      this.elem.removeEventListener(this.type, this._wrappedHandler)
-    })
+      listener = _listeners.splice(i, 1)[0]
+      this.elem.native.removeEventListener(listener.type, listener._wrappedHandler)
+    }, this)
   }
   // _prep: function (listener) {
   //   if (listener.target) {
@@ -47,22 +48,20 @@ util.extend(Listener, {
   register: function (listener) {
     listener.register()
   },
-  unregister: function (listener) {
-    listener.unregister()
+  deregister: function (listener) {
+    listener.deregister()
   },
   /*********************/
-  unregisterDOMNode: function (node) {
+  deregisterDOMNode: function (elem) {
     _listeners.filter(function (listener) {
-      return listener.elem === node
+      return listener.elem.native === elem.native
     }).forEach(function (listener) {
-      var i = listener.index, handler = _originalHandlers.splice(i, 1)
-      listener.elem.removeEventListener(listener.type, handler)
-      _listeners.splice(i, 1)
+      listener.deregister()
     })
   },
   handlerIndices: function (handler) {
     var i = 0, indices = []
-    while (~(i = _originalHandlers.indexOf(handler, i))) {
+    while (~(i = _originalHandlers.indexOf(handler, i+1))) {
       indices.push(i)
     }
     return indices
@@ -95,12 +94,31 @@ util.extend(dom.htmlElement.prototype, {
       } while( iteration !== evt.currentTarget )     
     }
 
-    Listener.register(new Listener(this, eventType, handler, wrappedHandler, targetElem))
+    function wrappedHandlerOnce (evt) {
+      wrappedHandler(evt)
+      dom(this).unlisten(eventType, handler)
+    }
+
+    Listener.register(new Listener(
+        this
+      , eventType
+      , handler
+      , options.once ? wrappedHandlerOnce : wrappedHandler
+      , targetElem
+    ))
 
     return this 
   }),
+  listenOnce: dom.safe(function () {
+    Array.prototype.push.call(arguments, {once : true})
+    this.listen.apply(this, arguments)
+  }),
   unlisten: dom.safe(function (eventType, handler) {
-    Listener.unregister(new Listener(this, eventType, handler))
+    Listener.deregister(new Listener(this, eventType, handler))
+  }),
+  deregisterEvents: dom.safe(function () {
+    Listener.deregisterDOMNode(this)
+    return this
   }),
   trigger: dom.safe(function (eventName, detail) {
     var customEvent = function () {
@@ -125,5 +143,30 @@ dom.DOMContentLoaded = function (callback) {
   }, {stack: true})
 }
 
-return event
+return {
+  _listeners: _listeners,
+  getListeners: function (c) {
+    var filter
+    switch (typeof c) {
+      case 'string':
+        filter = 'type'
+        break;
+      case 'object':
+        filter = 'elem'
+        break;
+      case 'function':
+        filter = 'handler'
+        break;
+      default:
+        throw new ReferenceError('Faulty criteria passed to livity.event.getListeners')
+    }        
+    return _listeners.filter(function (listener) {
+      return (filter === 'elem' ? listener[filter].native 
+            : listener[filter]) 
+            === 
+             (filter === 'elem' ? c.native
+            : c)
+    })
+  }
+}
 })()
