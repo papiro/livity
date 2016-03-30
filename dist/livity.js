@@ -50,20 +50,6 @@ ajax.GET = function(url, success, failure, always) {
 return ajax
 })()
 var livity = livity || {}
-
-livity.css = (function() {
-  return {
-    buildStylesheet: function (rulesets) {
-      var stylesheet = document.createElement('style')
-      document.head.appendChild(stylesheet)
-      var sheet = stylesheet.sheet
-      rulesets.reverse().forEach(function (ruleset) {
-        sheet.insertRule(ruleset, 0)
-      })
-    }
-  }
-})()
-var livity = livity || {}
 livity.dom = (function() {
 
 var util = livity.util
@@ -178,8 +164,8 @@ htmlElement.prototype = {
         this.style(prop, val)
       }.bind(this))
       return this
-    } else if (val) {
-      if (typeof val === 'number') val += 'px'
+    } else if (val !== undefined && val !== null) {
+      if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
       this.native.style[prop] = val
       return this
     } else {
@@ -196,7 +182,7 @@ htmlElement.prototype = {
     
     return this
   }),
-  offset: safe(function (set) {
+  offset: safe(function () {
     return {
       top: this.native.offsetTop,
       left: this.native.offsetLeft,
@@ -216,14 +202,15 @@ htmlElement.prototype = {
     return this.native.offsetWidth
   }),
   innerWidth: safe(function () {
-    return this.native.clientWidth
+    if (this.selector === 'window') return this.native.innerWidth
+    else return this.native.clientWidth
   }),
   outerWidth: safe(function () {
     return this.native.scrollWidth
   }),
-  show: safe(function () {
+  show: safe(function (block) {
     var elemStyle = this.native.style
-    elemStyle.display = 'flex'
+    elemStyle.display = block ? 'block' : 'flex'
     elemStyle.visibility = 'visible'
     return this
   }),
@@ -231,13 +218,26 @@ htmlElement.prototype = {
     this.native.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
     return this
   }),
+  toggle: safe(function (show) {
+    return this[show ? 'show' : 'hide']()
+  }),
   append: safe(function (elem) {
     elem = elem instanceof htmlElement ? elem.native : elem
     this.native.appendChild(elem)
     return this
   }),
+  prepend: safe(function (elem) {
+    elem = elem instanceof htmlElement ? elem.native : elem
+    this.native.insertBefore(elem, this.native.firstChild)
+    return this
+  }),
   appendTo: safe(function (elem) {
-    return dom(elem).append(this)
+    dom(elem).append(this)
+    return this
+  }),
+  prependTo: safe(function (elem) {
+    dom(elem).prepend(this)
+    return this
   }),
   inner: safe(function (elem) {
     this.clear()
@@ -255,7 +255,7 @@ htmlElement.prototype = {
   }),
   remove: safe(function (elem) {
     elem = ( typeof elem === 'string' ? dom(elem).native : elem ) || this.native
-    elem.parentNode.removeChild(elem)
+    elem.parentNode && elem.parentNode.removeChild(elem)
     return elem
   }),
   replaceWith: safe(function (elem) {
@@ -278,6 +278,41 @@ htmlElement.prototype = {
 
 return dom
 })()
+var livity = livity || {}
+,   dom = livity.dom
+,   util = livity.util
+
+util.extend(dom.htmlElement.prototype, {
+  transition: dom.safe(function () {
+    var transitions = [], transitionedProps = ''
+    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments, 0,4)) }
+
+    transitions.forEach(function (transition) {
+      var t = transition, prop = t[0], options = t[1], from = t[2], to = t[3], self = this
+      this.style('transition', transitionedProps += ( transitionedProps && ', ' ) + ( prop + ' ' + options ))
+          .style(prop, from)
+      // Need to wait for "from" to render before setting "to"
+      window.setTimeout(function () {
+        self.style(prop, to)
+      }, 0)
+    }, this)
+
+    return this
+  })
+})
+
+livity.css = (function() {
+  return {
+    buildStylesheet: function (rulesets) {
+      var stylesheet = document.createElement('style')
+      document.head.appendChild(stylesheet)
+      var sheet = stylesheet.sheet
+      rulesets.reverse().forEach(function (ruleset) {
+        sheet.insertRule(ruleset, 0)
+      })
+    }
+  }
+})()
 window.livity = livity || {}
 livity.generate = (function() {
 
@@ -298,70 +333,136 @@ var dom = livity.dom
 ,   util = livity.util
 ,   event = {}
 
-var listeners = event.listeners = {}
+var _originalHandlers = [], _listeners = []
 
-if (dom && dom.htmlElement) {
-  util.extend(dom.htmlElement.prototype, {
-    // eventType may be of the form 'click on li', 'hover on a', etc.. in the case of listen being called on a delegate
-    listen: dom.safe(function (verboseEventType, handler, options) {
-      if (!this.native) return this;
-      var options = options || {}
-      
-      var temp = verboseEventType.split(' ')
-      ,   eventType = temp.shift()
-
-      if( / on /.test(verboseEventType) ) {
-        var targetElem = temp.pop()
-      }
-
-      // Track event listener handlers so we can remove them
-      listeners[this.selector] = listeners[this.selector] || {}
-      listeners[this.selector][verboseEventType] = listeners[this.selector][verboseEventType] || {}
-      var handlerKey = handler.toString(), handlerRef
-      if (handlerRef = listeners[this.selector][verboseEventType][handlerKey]) {
-        if (options.cache) return this
-        if (!options.stack) {
-          this.unlisten(eventType, handlerRef)
-          delete listeners[this.selector][verboseEventType][handlerKey]          
-        }
-      } 
-
-      listeners[this.selector][verboseEventType][handlerKey] = wrappedHandler
-
-      function wrappedHandler (evt) {
-        if (!targetElem) return handler.bind(dom(this))(evt)
-        if (evt.target === evt.currentTarget) return
-        var iteration = evt.target
-        do {
-          if( ~Array.prototype.slice.call(evt.currentTarget.querySelectorAll(targetElem)).indexOf(iteration) ) {
-            return handler.bind(dom(iteration))(evt, dom(evt.currentTarget))
-          }
-          iteration = iteration.parentElement 
-        } while( iteration !== evt.currentTarget )     
-      }
-
-      this.native.addEventListener(eventType, listeners[this.selector][verboseEventType][handlerKey])
-      return this 
-    }),
-    unlisten: dom.safe(function (eventType, handlerRef) {
-      this.native.removeEventListener(eventType, handlerRef)
-    }),
-    trigger: dom.safe(function (eventName, detail) {
-      var customEvent = function () {
-        var customEvent
-        try {
-          customEvent = new CustomEvent(eventName, detail)
-        } catch (e) {
-          customEvent = document.createEvent('CustomEvent')
-          customEvent.initEvent(eventName, true, true, detail)
-        }
-        return customEvent
-      }
-      this.native.dispatchEvent(customEvent())
-      return this
-    })
-  })
+function Listener (elem, type, handler, _wrappedHandler, target) {
+  this.elem = elem
+  this.type = type
+  this.handler = handler
+  this._wrappedHandler = _wrappedHandler
+  this.target = target
 }
+
+util.extend(Listener.prototype, {
+  register: function () {
+    this.elem.native.addEventListener(this.type, this._wrappedHandler)
+    // listener = prep(this)
+    this.index = _originalHandlers.length
+    _originalHandlers.push(this.handler)
+    _listeners.push(this)
+    if (_listeners.length % 10 === 0) {
+      console.log("Just reached %s event listeners", _listeners.length)
+    }
+  },
+  // DOC: Does not consider delegated targets when deregisterting
+  deregister: function () {
+    Listener.handlerIndices(this.handler).filter(function (i) {
+      return _listeners[i].type === this.type && _listeners[i].elem.native === this.elem.native
+    }, this).forEach(function (i) {
+      _originalHandlers.splice(i, 1)
+      listener = _listeners.splice(i, 1)[0]
+      this.elem.native.removeEventListener(listener.type, listener._wrappedHandler)
+    }, this)
+  }
+  // _prep: function (listener) {
+  //   if (listener.target) {
+  //     listener.target = listener.elem.native.querySelectorAll(listener.target) // TODO: make dom multi-node friendly
+  //   }
+  // },
+})
+
+util.extend(Listener, {
+  /*convenience methods*/
+  register: function (listener) {
+    listener.register()
+  },
+  deregister: function (listener) {
+    listener.deregister()
+  },
+  /*********************/
+  deregisterDOMNode: function (elem) {
+    _listeners.filter(function (listener) {
+      return listener.elem.native === elem.native
+    }).forEach(function (listener) {
+      listener.deregister()
+    })
+  },
+  handlerIndices: function (handler) {
+    var i = 0, indices = []
+    while (~(i = _originalHandlers.indexOf(handler, i+1))) {
+      indices.push(i)
+    }
+    return indices
+  }
+})
+
+util.extend(dom.htmlElement.prototype, {
+  // eventType may be of the form 'click on li', 'hover on a', etc.. in the case of listen being called on a delegate
+  listen: dom.safe(function (verboseEventType, handler, options) {
+    if (!this.native) return this;  // null
+
+    var options = options || {}
+    ,   temp = verboseEventType.split(' ')
+    ,   eventType = temp.shift()
+
+    if( / on /.test(verboseEventType) ) {
+      var targetElem = temp.pop()
+    }
+    // options.cache && options.stack
+    function wrappedHandler (evt) {
+      if (!targetElem) return handler.bind(dom(this))(evt)
+      if (evt.target === evt.currentTarget) return
+      var iteration = evt.target
+      ,   targetElems = Array.prototype.slice.call(evt.currentTarget.querySelectorAll(targetElem))
+      do {
+        if( ~targetElems.indexOf(iteration) ) {
+          return handler.bind(dom(iteration))(evt, dom(evt.currentTarget))
+        }
+        iteration = iteration.parentElement 
+      } while( iteration !== evt.currentTarget )     
+    }
+
+    function wrappedHandlerOnce (evt) {
+      wrappedHandler.call(this, evt)
+      dom(this).unlisten(eventType, handler)
+    }
+
+    Listener.register(new Listener(
+        this
+      , eventType
+      , handler
+      , options.once ? wrappedHandlerOnce : wrappedHandler
+      , targetElem
+    ))
+
+    return this 
+  }),
+  listenOnce: dom.safe(function () {
+    Array.prototype.push.call(arguments, {once : true})
+    this.listen.apply(this, arguments)
+  }),
+  unlisten: dom.safe(function (eventType, handler) {
+    Listener.deregister(new Listener(this, eventType, handler))
+  }),
+  deregisterEvents: dom.safe(function () {
+    Listener.deregisterDOMNode(this)
+    return this
+  }),
+  trigger: dom.safe(function (eventName, detail) {
+    var customEvent = function () {
+      var customEvent
+      try {
+        customEvent = new CustomEvent(eventName, detail)
+      } catch (e) {
+        customEvent = document.createEvent('CustomEvent')
+        customEvent.initEvent(eventName, true, true, detail)
+      }
+      return customEvent
+    }
+    this.native.dispatchEvent(customEvent())
+    return this
+  })
+})
 
 dom.DOMContentLoaded = function (callback) {
   if( document.readyState === 'complete' ) return callback()
@@ -370,7 +471,32 @@ dom.DOMContentLoaded = function (callback) {
   }, {stack: true})
 }
 
-return event
+return {
+  _listeners: _listeners,
+  getListeners: function (c) {
+    var filter
+    switch (typeof c) {
+      case 'string':
+        filter = 'type'
+        break;
+      case 'object':
+        filter = 'elem'
+        break;
+      case 'function':
+        filter = 'handler'
+        break;
+      default:
+        throw new ReferenceError('Faulty criteria passed to livity.event.getListeners')
+    }        
+    return _listeners.filter(function (listener) {
+      return (filter === 'elem' ? listener[filter].native 
+            : listener[filter]) 
+            === 
+             (filter === 'elem' ? c.native
+            : c)
+    })
+  }
+}
 })()
 var livity = livity || {}
 livity.router = (function() {
@@ -439,7 +565,6 @@ livity.css.buildStylesheet([
     max-width: 100%;\
     max-height: 100%;\
     box-shadow: 0 0 7em 5em hsla(100, 100%, 0%, 0.8);\
-    transition: left 4s, right 4s;\
   }',
   '.livity-overlay-right,\
   .livity-overlay-left {\
@@ -509,7 +634,7 @@ livity.WebUIComponents.push((function() {
       cache[1].img = newPreloadedImage(cache[1].thumb)
 
       // When the first image is finished loading, pre-load the previous and the next
-      dom(cache[1].img).listen('load', function() {
+      dom(cache[1].img).listenOnce('load', function() {
         for (var i=0, j=[0,2]; i<2; i++) {
           cache[j[i]].img = newPreloadedImage(cache[j[i]].thumb)
         }
@@ -517,10 +642,14 @@ livity.WebUIComponents.push((function() {
         x.show()
       })
       x.hide(true)
+      var originalBodyOverflow = dom('body').style('overflow')
+      dom('body').style('overflow', 'hidden')
+
       dom('[data-livity-gallery-overlay]')
         .append(cache[1].img)
         .listen('click on [data-x]', function (evt, overlay) {
-          overlay.hide().find('img').remove()
+          dom('body').style('overflow', originalBodyOverflow)
+          overlay.hide().deregisterEvents().find('img').remove()
         }, {cache: true})
         .listen('click on [data-right]', function (evt, overlay) {
           scroll.call(overlay, {next: true})
@@ -528,14 +657,36 @@ livity.WebUIComponents.push((function() {
         .listen('click on [data-left]', function (evt, overlay) {
           scroll.call(overlay, {prev: true})
         })
-        .show()
+      .show()
 
       function scroll (direction) {
-        var step = direction.next ? 1 : -1
+        var next = direction.next, step = next ? 1 : -1
         position += step
         if (cache[position].img) {
-          var img = this.find('img').style('left', -900)//.replaceWith(cache[position].img)
-          positionGalleryControls(img);
+          var oldImg = this.find('img')
+          ,   newImg = dom(cache[position].img)
+          ,   windowInnerWidth = dom(window).innerWidth()
+          ,   transitionendHandler = function () {
+            positionGalleryControls(newImg)
+            this.at('style', '').remove()            
+            this.unlisten('transitionend', transitionendHandler)
+          }
+
+          toggleGalleryControls(false)
+
+          oldImg
+            .transition(
+              'margin-' + (next ? 'right' : 'left'), '1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
+              'opacity', '1s ease-out', 1, 0
+            ).listen('transitionend', transitionendHandler)
+
+          newImg
+            [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
+            .transition(
+              'margin-' + (next ? 'right' : 'left'), '1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
+              'opacity', '1s ease-out', 0, 1)
+
+
           if (!cache[position+step]) {
             var thumb = cache[position].thumb[position ? "next" : "previous"]()
             cache[position ? "push" : "unshift"]({
@@ -555,8 +706,15 @@ livity.WebUIComponents.push((function() {
         return img.src && img
       }
 
+      function toggleGalleryControls (on) {
+        dom('[data-x]').toggle(on)
+        dom('[data-right]').toggle(on)
+        dom('[data-left]').toggle(on)
+      }
+
       function positionGalleryControls (img) {
         var x = dom('[data-x]')
+        toggleGalleryControls(true)
         x.style({
           top: dom(img).offset().top + x.height() + 'px',
           right: dom(img).offset().left + x.width() + 'px'
