@@ -8,7 +8,7 @@ var router = function (config) {
   var routes = config.routes || {}
   dom().listen('hashchange', function() {
     var hash = window.location.hash
-    ,   route = config.routes.hasOwnProperty(hash) ? config.routes[hash] : hash
+    ,   route = routes.hasOwnProperty(hash) ? routes[hash] : hash
     // slice off the leading '#' and a following '/' if there is one
     route = route.slice(route[1]==='/'?2:1)
     ajax.GET(config.markupDir+'/'+route+'.html', function (req) {

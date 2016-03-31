@@ -283,17 +283,26 @@ var livity = livity || {}
 ,   util = livity.util
 
 util.extend(dom.htmlElement.prototype, {
+  // pass arguments, 3 for each transition, in the order of:
+  //  transition shorthand settings, from value, to value
   transition: dom.safe(function () {
-    var transitions = [], transitionedProps = ''
-    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments, 0,4)) }
+    var transitions = [], transitionsGrouped = ''
+    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments,0,3)) }
 
-    transitions.forEach(function (transition) {
-      var t = transition, prop = t[0], options = t[1], from = t[2], to = t[3], self = this
-      this.style('transition', transitionedProps += ( transitionedProps && ', ' ) + ( prop + ' ' + options ))
-          .style(prop, from)
+    transitions = transitions.map(function (transition) {
+      var t = transition, settings = t[0], from = t[1], to = t[2], prop = settings.split(' ')[0]
+      transitionsGrouped += (( transitionsGrouped && ', ' ) + settings)
+      this.style(prop, from)
+      return [prop, to] // just keep what we need
+    }, this)
+
+    this.style('transition', transitionsGrouped)
+  
+    transitions.forEach(function (t) {
+      var self = this
       // Need to wait for "from" to render before setting "to"
       window.setTimeout(function () {
-        self.style(prop, to)
+        self.style(t[0], t[1])
       }, 0)
     }, this)
 
@@ -504,12 +513,16 @@ livity.router = (function() {
 var dom = livity.dom
 ,   ajax = livity.ajax
 
-var router = function (view) {
+var router = function (config) {
+  var routes = config.routes || {}
   dom().listen('hashchange', function() {
     var hash = window.location.hash
-    ajax.GET(dom('#'+hash.slice(1)).at('src'), function (req) {
-      dom(view).inner(req.response)
-      dom(document).trigger('view.'+hash.slice(2))
+    ,   route = routes.hasOwnProperty(hash) ? routes[hash] : hash
+    // slice off the leading '#' and a following '/' if there is one
+    route = route.slice(route[1]==='/'?2:1)
+    ajax.GET(config.markupDir+'/'+route+'.html', function (req) {
+      dom(config.view).inner(req.response)
+      dom(document).trigger('view.'+route)
     })
     router.initialized = true
   })
@@ -676,15 +689,15 @@ livity.WebUIComponents.push((function() {
 
           oldImg
             .transition(
-              'margin-' + (next ? 'right' : 'left'), '1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
-              'opacity', '1s ease-out', 1, 0
+              'margin-' + (next ? 'right' : 'left') + ' 1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
+              'opacity 1s ease-out', 1, 0
             ).listen('transitionend', transitionendHandler)
 
           newImg
             [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
             .transition(
-              'margin-' + (next ? 'right' : 'left'), '1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
-              'opacity', '1s ease-out', 0, 1)
+              'margin-' + (next ? 'right' : 'left') + ' 1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
+              'opacity 1s ease-out', 0, 1)
 
 
           if (!cache[position+step]) {
