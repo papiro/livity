@@ -3,17 +3,26 @@ var livity = livity || {}
 ,   util = livity.util
 
 util.extend(dom.htmlElement.prototype, {
+  // pass arguments, 3 for each transition, in the order of:
+  //  transition shorthand settings, from value, to value
   transition: dom.safe(function () {
-    var transitions = [], transitionedProps = ''
-    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments, 0,4)) }
+    var transitions = [], transitionsGrouped = ''
+    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments,0,3)) }
 
-    transitions.forEach(function (transition) {
-      var t = transition, prop = t[0], options = t[1], from = t[2], to = t[3], self = this
-      this.style('transition', transitionedProps += ( transitionedProps && ', ' ) + ( prop + ' ' + options ))
-          .style(prop, from)
+    transitions = transitions.map(function (transition) {
+      var t = transition, settings = t[0], from = t[1], to = t[2], prop = settings.split(' ')[0]
+      transitionsGrouped += (( transitionsGrouped && ', ' ) + settings)
+      this.style(prop, from)
+      return [prop, to] // just keep what we need
+    }, this)
+
+    this.style('transition', transitionsGrouped)
+  
+    transitions.forEach(function (t) {
+      var self = this
       // Need to wait for "from" to render before setting "to"
       window.setTimeout(function () {
-        self.style(prop, to)
+        self.style(t[0], t[1])
       }, 0)
     }, this)
 

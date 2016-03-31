@@ -133,15 +133,15 @@ livity.WebUIComponents.push((function() {
 
           oldImg
             .transition(
-              'margin-' + (next ? 'right' : 'left'), '1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
-              'opacity', '1s ease-out', 1, 0
+              'margin-' + (next ? 'right' : 'left') + ' 1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
+              'opacity 1s ease-out', 1, 0
             ).listen('transitionend', transitionendHandler)
 
           newImg
             [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
             .transition(
-              'margin-' + (next ? 'right' : 'left'), '1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
-              'opacity', '1s ease-out', 0, 1)
+              'margin-' + (next ? 'right' : 'left') + ' 1s ease-out', -windowInnerWidth, (windowInnerWidth - newImg.width())/2,
+              'opacity 1s ease-out', 0, 1)
 
 
           if (!cache[position+step]) {
