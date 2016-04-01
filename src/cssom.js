@@ -7,7 +7,7 @@ util.extend(dom.htmlElement.prototype, {
   //  transition shorthand settings, from value, to value
   transition: dom.safe(function () {
     var transitions = [], transitionsGrouped = ''
-    while (arguments.length) { transitions.push(Array.prototype.splice.call(arguments,0,3)) }
+    while (arguments.length > 1) { transitions.push(Array.prototype.splice.call(arguments,0,3)) }
 
     transitions = transitions.map(function (transition) {
       var t = transition, settings = t[0], from = t[1], to = t[2], prop = settings.split(' ')[0]
@@ -16,7 +16,9 @@ util.extend(dom.htmlElement.prototype, {
       return [prop, to] // just keep what we need
     }, this)
 
-    this.style('transition', transitionsGrouped)
+    this
+      .style('transition', transitionsGrouped)
+      .listen('transitionend', arguments[0] || function () {})
   
     transitions.forEach(function (t) {
       var self = this
