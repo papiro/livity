@@ -3,8 +3,14 @@ livity.ajax = (function() {
 
 var ajax = {}
 
-ajax.GET = function(url, success, failure, always) {
+function _openAndReturnReq(method, url) {
   var req = new XMLHttpRequest()
+  req.open(method, url)
+  return req
+}
+
+ajax.GET = function(url, success, failure, always) {
+  var req = _openAndReturnReq('GET', url)
 
   req.onreadystatechange = function() {
     if (req.readyState === 4) {
@@ -20,8 +26,13 @@ ajax.GET = function(url, success, failure, always) {
     }
   }
 
-  req.open('GET', url)
   req.send()
+}
+
+ajax.POST = function(url, data, success, failure, always) {
+  _openAndReturnReq('POST', url)
+
+  req.send(data)      
 }
 
 return ajax

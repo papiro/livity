@@ -18,7 +18,7 @@ util.extend(dom.htmlElement.prototype, {
 
     this
       .style('transition', transitionsGrouped)
-      .listen('transitionend', arguments[0] || function () {})
+      .listenOnce('transitionend', arguments[0] || function () {})
   
     transitions.forEach(function (t) {
       var self = this
