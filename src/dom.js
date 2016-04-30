@@ -217,6 +217,9 @@ htmlElement.prototype = {
   next: safe(function () {
     return dom(this.native.nextElementSibling)
   }),
+  parent: safe(function () {
+    return dom(this.native.parentNode)
+  }),
   previous: safe(function () {
     return dom(this.native.previousElementSibling)
   }),
