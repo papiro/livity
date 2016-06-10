@@ -220,6 +220,9 @@ htmlElement.prototype = {
   parent: safe(function () {
     return dom(this.native.parentNode)
   }),
+  child: safe(function () {
+    return dom(this.native.firstChild)
+  }),
   previous: safe(function () {
     return dom(this.native.previousElementSibling)
   }),
