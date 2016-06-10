@@ -3,7 +3,6 @@ livity.event = (function() {
 
 var dom = livity.dom
 ,   util = livity.util
-,   event = {}
 
 var _originalHandlers = [], _listeners = []
 
