@@ -1,0 +1,30 @@
+{
+  "name": "livityjs",
+  "version": "1.0.1",
+  "description": "A general-purpose lightweight javaScript library.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prerelease": "git commit -a || true",
+    "release": "npm version ",
+    "postrelease": "git push && git push --tags && npm publish",
+    "prebuild": "cat src/.build | grep \"^[^#]\" | sed -r s-\\(\\\\w*\\)-src/\\\\1.js- | xargs cat > dist/livity.js",
+    "build": "uglifyjs dist/livity.js --compress --mangle --screw-ie8 -o dist/livity.min.js --source-map dist/livity.min.js.map"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papiro/LivityJS.git"
+  },
+  "keywords": [
+    "livityjs"
+  ],
+  "author": "papiro",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/papiro/LivityJS/issues"
+  },
+  "homepage": "https://github.com/papiro/LivityJS#readme",
+  "devDependencies": {
+    "uglify-js": "^2.6.2"
+  }
+}
