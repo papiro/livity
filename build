@@ -1,0 +1,3 @@
+#!/bin/sh
+# cat all non-commented files listed in .build into a single distribution file
+cat src/.build | grep "^[^#]" | sed -r s-(\w*)-src/\1.js- | xargs cat > dist/livity.js

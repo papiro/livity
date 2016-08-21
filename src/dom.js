@@ -1,39 +1,18 @@
-var livity = livity || {}
-livity.dom = (function() {
+'use strict';
 
-var util = livity.util
-// Only supports the wrapping of one element at a time.
-// This is to encourage event delegation for performance implications developers easily take for granted.
-// dom() with no arguments is a wrapper for `window`
-var dom = function (query, root) {
-  var root = root || document
-  ,   elem = window
+/****
+ ** LivityJS mutates the HTMLElement prototype.
+ ** If you don't want this behavior then don't use it, but here are the reasons it was designed as such:
+ ** 1. You can use any native DOM API method you'd like to select your element, which would be faster than
+ **   using the $ method.
+ ** 2. When using getElementsByClassName or getElementsByTagName or getElementsByName, you can use normal
+ **   array methods to traverse/map/filter the collection which will be faster than custom methods.
+ ** 3. No needing to make sure your element is wrapped before calling one of LivityJS's methods on it.
+****/
 
-  if (
-    query instanceof htmlElement // livity.dom.htmlElement.prototype
-    ) return query
+Object.assign(HTMLElement.prototype, {
 
-  else if (
-    query instanceof HTMLElement // native
-    ||
-    query instanceof Document
-    ) elem = query
-  
-  else if (
-    typeof query === 'string' 
-    ) {
-      var selector = query
-      if (!selector.indexOf('#')) {
-        elem = root.getElementById(selector.slice(1))
-      } else elem = root.querySelector( query )
-    }
-
-  else if (
-    query && query.length
-    ) elem = query[0]
-
-  return new htmlElement(elem, selector)
-}
+})
 
 dom.create = function (elem) {
   if (elem[0] === '<') {
@@ -42,20 +21,6 @@ dom.create = function (elem) {
     return temp.childElementCount === 1 ? new htmlElement(temp.firstChild) : temp.children
   }
   return new htmlElement(document.createElement(elem))
-}
-
-var htmlElement = function (elem, selector) {
-  this.native = elem
-  switch (elem) {
-    case window:
-      this.selector = 'window'
-      break;
-    case document:
-      this.selector = 'document'
-      break;
-    default:
-      this.selector = selector
-  }
 }
 
 // sandbox for code during (and maybe after) development
