@@ -1,18 +1,12 @@
 'use strict';
 
-const $a = document.querySelectorAll
-const $i = document.getElementById
-const $c = document.getElementsByClassName
-const $n = document.getElementsByName
-const $t = document.getElementsByTagName
-
 const $ = (query, root = document) => {
   let queryMatch = window
   let queryMethod = 'querySelectorAll'
   if (typeof query !== 'string') {
-    throw new Error(`$ needs a string but was passed ${query}, which is a ${typeof query}`)
+    throw new TypeError(`$ needs a string but was passed ${query}, which is a ${typeof query}`)
   }
-  if ((/.* /).test(query)) {
+  if ((/\w[ \.#]/).test(query)) {
     queryMethod = 'querySelectorAll'
   } else {
     switch (query[0]) {
@@ -25,10 +19,11 @@ const $ = (query, root = document) => {
         query = query.slice(1)
         break
       default:
-        queryMethod = 'getElementsByTagName '
+        queryMethod = 'getElementsByTagName'
     }
   }
-  return root[queryMethod](query)
+  let match = root[queryMethod](query)
+  return match.length === 1 ? match[0] : match
 }
 
 

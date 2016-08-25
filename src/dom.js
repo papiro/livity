@@ -10,11 +10,33 @@
  ** 3. No needing to make sure your element is wrapped before calling one of LivityJS's methods on it.
 ****/
 
-Object.assign(HTMLElement.prototype, {
+Object.assign( HTMLElement.prototype, {
+  find (query) {
+    return $(query, this)
+  },
+  attr (name, value) {
+    if (!name) {
+      let attrMap={};
+      for (let i=0; i<this.attributes.length; i++) {
+        const attribute = this.attributes[i]
+        attrMap[attribute.name] = attribute.value
+      }
+      return attrMap
+    }
 
+    if (value === undefined) {
+      return this.getAttribute(name)
+    }
+
+    this.setAttribute(name, value)
+    return this
+  },
+  text (text) {
+    return text ? (this.textContent = text) && this : this.textContent
+  }
 })
 
-dom.create = function (elem) {
+var create = function (elem) {
   if (elem[0] === '<') {
     var temp = document.createElement('div')
     temp.innerHTML = elem
@@ -24,7 +46,7 @@ dom.create = function (elem) {
 }
 
 // sandbox for code during (and maybe after) development
-var safe = dom.safe = function (code) {
+var safe = function (code) {
   return function() {
     try {
       return code.apply(this, arguments)
@@ -33,38 +55,8 @@ var safe = dom.safe = function (code) {
     }
   }
 }
-
-// make the htmlElement prototype public
-dom.htmlElement = htmlElement
-
+var htmlElement = {}
 htmlElement.prototype = {
-  find: safe(function (selector) {
-    return dom(selector, this.native)
-  }),
-  // terse name for 'attributes'
-  at: safe(function (name, value) {
-    if (!name) {
-      for (var i=0, native=this.native, atMap={}; i<native.attributes.length; i++) {
-        var attribute = attributes[i]
-        atMap[attribute.name] = attribute.value
-      }
-      return atMap
-    }
-
-    if (value === undefined) {
-      return this.native.getAttribute(name)
-    }
-
-    this.native.setAttribute(name, value)
-    return this
-  }),
-  text: safe(function (text) {
-    if (text) {
-      this.native.textContent = text
-      return this
-    } else
-      return this.native.textContent
-  }),
   class: safe(function (classes) {
     if (classes) 
       this.native.className = classes
@@ -195,6 +187,3 @@ htmlElement.prototype = {
     return !!(this.native && this.native.nodeName === 'IMG')
   })
 }
-
-return dom
-})()
