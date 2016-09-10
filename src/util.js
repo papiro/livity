@@ -37,3 +37,10 @@ Object.assign($, {
   }
 })
 
+Object.prototype.forIn = (callback) => {
+  for (let key in this) {
+    if (this.hasOwnProperty(key)) {
+      callback(key, this[key], this)
+    }
+  } 
+}
