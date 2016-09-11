@@ -13,6 +13,7 @@
 ;(function () {
 
   let _originalHandlers = [], _listeners = []
+  const noop = () => {}
 
   class Listener {
     constructor (elem, type, handler, _wrappedHandler, target) {
@@ -26,7 +27,7 @@
     }
     
     register () {
-      this.elem.native.addEventListener(this.type, this._wrappedHandler)
+      this.elem.addEventListener(this.type, this._wrappedHandler)
       // listener = prep(this)
       this.index = _originalHandlers.length
       _originalHandlers.push(this.handler)
@@ -39,11 +40,11 @@
     // DOC: Does not consider delegated targets when deregisterting
     deregister () {
       Listener.handlerIndices(this.handler).filter(function (i) {
-        return _listeners[i].type === this.type && _listeners[i].elem.native === this.elem.native
+        return _listeners[i].type === this.type && _listeners[i].elem === this.elem
       }, this).forEach(function (i) {
         _originalHandlers.splice(i, 1)
         listener = _listeners.splice(i, 1)[0]
-        this.elem.native.removeEventListener(listener.type, listener._wrappedHandler)
+        this.elem.removeEventListener(listener.type, listener._wrappedHandler)
       }, this)
     }
     /*convenience methods*/
@@ -56,11 +57,11 @@
     }
     /*********************/
     static deregisterDOMNode (elem) {
-      _listeners.filter(function (listener) {
-        return listener.elem.native === elem.native
-      }).forEach(function (listener) {
-        listener.deregister()
-      })
+      _listeners
+        .filter( listener => listener.elem === elem )
+        .forEach( listener => {
+          listener.deregister()
+        })
     }
 
     static handlerIndices (handler) {
@@ -119,25 +120,35 @@
     text (text) {
       return text ? (this.textContent = text) && this : this.textContent
     },
-    on (verboseEventType, handler, options) {
-      if (!this.native) return this;  // null
-
-      var options = options || {}
-      ,   temp = verboseEventType.split(' ')
-      ,   eventType = temp.shift()
-
-      if( / on /.test(verboseEventType) ) {
-        var targetElem = temp.pop()
+    on (...arguments) {
+      // Handle overloaded function without changing variable types
+      let eType = arguments[0], target, handler, options
+      switch (arguments.length) {
+        case 3:
+          target = null
+          handler = arguments[1]
+          options = arguments[2] 
+          break
+        case 4:
+          // if target is a string, run it as a selector
+          target = ( typeof arguments[1] === 'string' ? $(arguments[1]) : arguments[1] )
+          handler = arguments[2]
+          options = arguments[3]
+          break
+        default:
+          return throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
       }
+      this._on(eType, target, handler, options)
+    },
+    _on (eType, target, handler, options) {
       // options.cache && options.stack
       function wrappedHandler (evt) {
-        if (!targetElem) return handler.bind(dom(this))(evt)
-        if (evt.target === evt.currentTarget) return
-        var iteration = evt.target
-        ,   targetElems = Array.prototype.slice.call(evt.currentTarget.querySelectorAll(targetElem))
+        if (!target) return handler.bind(this)(evt)
+        let iteration = evt.target
+        const targets = [...evt.currentTarget.querySelectorAll(target)]
         do {
-          if( ~targetElems.indexOf(iteration) ) {
-            return handler.bind(dom(iteration))(evt, dom(evt.currentTarget))
+          if( ~targets.indexOf(iteration) ) {
+            return handler.bind(iteration)(evt)
           }
           iteration = iteration.parentElement 
         } while( iteration !== evt.currentTarget )     
@@ -145,25 +156,24 @@
 
       function wrappedHandlerOnce (evt) {
         wrappedHandler.call(this, evt)
-        dom(this).unlisten(eventType, handler)
+        this.off(eType, handler)
       }
 
       Listener.register(new Listener(
           this
-        , eventType
+        , eType
         , handler
         , options.once ? wrappedHandlerOnce : wrappedHandler
-        , targetElem
+        , target
       ))
 
       return this 
     },
     once () {
-      Array.prototype.push.call(arguments, {once : true})
-      this.listen.apply(this, arguments)
+      this.on.apply(this, [...arguments].push({ once: true })))
     },
-    off (eventType, handler) {
-      Listener.deregister(new Listener(this, eventType, handler))
+    off (eType, handler) {
+      Listener.deregister(new Listener(this, eType, handler))
     },
     deregisterEvents () {
       Listener.deregisterDOMNode(this)
