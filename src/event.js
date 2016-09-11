@@ -1,32 +1,31 @@
-var livity = livity || {}
-livity.event = (function() {
+'use strict'
 
-var dom = livity.dom
-,   util = livity.util
+let _originalHandlers = [], _listeners = []
 
-var _originalHandlers = [], _listeners = []
-
-function Listener (elem, type, handler, _wrappedHandler, target) {
-  this.elem = elem
-  this.type = type
-  this.handler = handler
-  this._wrappedHandler = _wrappedHandler
-  this.target = target
-}
-
-util.extend(Listener.prototype, {
-  register: function () {
+class Listener {
+  constructor (elem, type, handler, _wrappedHandler, target) {
+    Object.assign(this, {
+      elem,
+      type,
+      handler,
+      _wrappedHandler,
+      target
+    })
+  }
+  
+  register () {
     this.elem.native.addEventListener(this.type, this._wrappedHandler)
     // listener = prep(this)
     this.index = _originalHandlers.length
     _originalHandlers.push(this.handler)
     _listeners.push(this)
     if (_listeners.length % 10 === 0) {
-      console.log("Just reached %s event listeners", _listeners.length)
+      console.log('Just reached %s event listeners', _listeners.length)
     }
-  },
+  }
+
   // DOC: Does not consider delegated targets when deregisterting
-  deregister: function () {
+  deregister () {
     Listener.handlerIndices(this.handler).filter(function (i) {
       return _listeners[i].type === this.type && _listeners[i].elem.native === this.elem.native
     }, this).forEach(function (i) {
@@ -35,37 +34,54 @@ util.extend(Listener.prototype, {
       this.elem.native.removeEventListener(listener.type, listener._wrappedHandler)
     }, this)
   }
-  // _prep: function (listener) {
-  //   if (listener.target) {
-  //     listener.target = listener.elem.native.querySelectorAll(listener.target) // TODO: make dom multi-node friendly
-  //   }
-  // },
-})
-
-util.extend(Listener, {
   /*convenience methods*/
-  register: function (listener) {
+  static register (listener) {
     listener.register()
-  },
-  deregister: function (listener) {
+  }
+  
+  static deregister (listener) {
     listener.deregister()
-  },
+  }
   /*********************/
-  deregisterDOMNode: function (elem) {
+  static deregisterDOMNode (elem) {
     _listeners.filter(function (listener) {
       return listener.elem.native === elem.native
     }).forEach(function (listener) {
       listener.deregister()
     })
-  },
-  handlerIndices: function (handler) {
+  }
+
+  static handlerIndices (handler) {
     var i = 0, indices = []
     while (~(i = _originalHandlers.indexOf(handler, i+1))) {
       indices.push(i)
     }
     return indices
   }
-})
+  static getListeners (c) {
+    var filter
+    switch (typeof c) {
+      case 'string':
+        filter = 'type'
+        break;
+      case 'object':
+        filter = 'elem'
+        break;
+      case 'function':
+        filter = 'handler'
+        break;
+      default:
+        throw new ReferenceError('Faulty criteria passed to livity.event.getListeners')
+    }        
+    return _listeners.filter(function (listener) {
+      return (filter === 'elem' ? listener[filter].native 
+            : listener[filter]) 
+            === 
+             (filter === 'elem' ? c.native
+            : c)
+    })
+  }
+}
 
 util.extend(dom.htmlElement.prototype, {
   // eventType may be of the form 'click on li', 'hover on a', etc.. in the case of listen being called on a delegate
