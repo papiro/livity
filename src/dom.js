@@ -120,23 +120,28 @@
     text (text) {
       return text ? (this.textContent = text) && this : this.textContent
     },
-    on (...arguments) {
+    on (eType, ...args) {
       // Handle overloaded function without changing variable types
-      let eType = arguments[0], target, handler, options
-      switch (arguments.length) {
-        case 3:
+      let target, handler, options
+      switch (args.length) {
+        case 1:
           target = null
-          handler = arguments[1]
-          options = arguments[2] 
+          handler = args[0]
+          options = {}
           break
-        case 4:
+        case 2:
+          target = null
+          handler = args[0]
+          options = args[1] 
+          break
+        case 3:
           // if target is a string, run it as a selector
-          target = ( typeof arguments[1] === 'string' ? $(arguments[1]) : arguments[1] )
-          handler = arguments[2]
-          options = arguments[3]
+          target = ( typeof args[0] === 'string' ? $(args[0]) : args[0] )
+          handler = args[1]
+          options = args[2]
           break
         default:
-          return throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
+          throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
       }
       this._on(eType, target, handler, options)
     },
@@ -170,7 +175,7 @@
       return this 
     },
     once () {
-      this.on.apply(this, [...arguments].push({ once: true })))
+      this.on.apply(this, [...arguments].push({ once: true }))
     },
     off (eType, handler) {
       Listener.deregister(new Listener(this, eType, handler))
