@@ -17,13 +17,7 @@
 
   class Listener {
     constructor (elem, type, handler, _wrappedHandler, target) {
-      Object.assign(this, {
-        elem,
-        type,
-        handler,
-        _wrappedHandler,
-        target
-      })
+      Object.assign(this, { elem, type, handler, _wrappedHandler, target })
     }
     
     register () {
@@ -37,7 +31,7 @@
       }
     }
 
-    // DOC: Does not consider delegated targets when deregisterting
+    // DOC: Does not consider delegated targets when deregistering
     deregister () {
       Listener.handlerIndices(this.handler).filter(function (i) {
         return _listeners[i].type === this.type && _listeners[i].elem === this.elem
@@ -47,6 +41,7 @@
         this.elem.removeEventListener(listener.type, listener._wrappedHandler)
       }, this)
     }
+    
     /*convenience methods*/
     static register (listener) {
       listener.register()
@@ -56,13 +51,14 @@
       listener.deregister()
     }
     /*********************/
+
     static deregisterDOMNode (elem) {
       _listeners
         .filter( listener => listener.elem === elem )
         .forEach( listener => {
           listener.deregister()
         })
-    }
+    } 
 
     static handlerIndices (handler) {
       var i = 0, indices = []
@@ -71,6 +67,7 @@
       }
       return indices
     }
+
     static getListeners (c) {
       var filter
       switch (typeof c) {
@@ -84,13 +81,13 @@
           filter = 'handler'
           break;
         default:
-          throw new ReferenceError('Faulty criteria passed to livity.event.getListeners')
+          throw new ReferenceError('Faulty criteria passed to Listener.getListeners')
       }        
       return _listeners.filter(function (listener) {
-        return (filter === 'elem' ? listener[filter].native 
+        return (filter === 'elem' ? listener[filter] 
               : listener[filter]) 
               === 
-               (filter === 'elem' ? c.native
+               (filter === 'elem' ? c
               : c)
       })
     }
@@ -195,8 +192,138 @@
         }
         return customEvent
       }
-      this.native.dispatchEvent(customEvent())
+      this.dispatchEvent(customEvent())
       return this
+    },
+    getListeners: Livity.getListeners,
+    class (classes) {
+      if (classes) 
+        this.className = classes
+      else
+        return this.className
+      return this    
+    },
+    style (prop, val) {
+      if (typeof prop === 'object') {
+        util.each(prop, function (prop, val) {
+          this.style(prop, val)
+        }.bind(this))
+        return this
+      } else if (val !== undefined && val !== null) {
+        if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
+        this.style[prop] = val
+        return this
+      } else {
+        var style = window.getComputedStyle(this)
+        return prop ? style[prop] : style
+      }
+    },
+    classtoggle (cname) {
+      if (RegExp(cname).test(this.className)) {
+        this.className = this.className.replace(RegExp(' '+cname+'|'+cname+' |'+cname, 'g'), '')
+      } else {
+        this.className += ' ' + cname
+      }
+      
+      return this
+    },
+    offset () {
+      return {
+        top: this.offsetTop,
+        left: this.offsetLeft,
+        right: this.offsetRight
+      }
+    },
+    height () {
+      return this.offsetHeight
+    },
+    innerHeight () {
+      return this.clientHeight
+    },
+    outerHeight () {
+      return this.scrollHeight
+    },
+    width () {
+      return this.offsetWidth
+    },
+    innerWidth () {
+      if (this.selector === 'window') return this.innerWidth
+      else return this.clientWidth
+    },
+    outerWidth () {
+      return this.scrollWidth
+    },
+    show (block) {
+      var elemStyle = this.style
+      elemStyle.display = block ? 'block' : 'flex'
+      elemStyle.visibility = 'visible'
+      return this
+    },
+    hide (noreflow) {
+      this.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
+      return this
+    },
+    toggle (show) {
+      return this[show ? 'show' : 'hide']()
+    },
+    append (elem) {
+      elem = elem instanceof htmlElement ? elem : elem
+      this.appendChild(elem)
+      return this
+    },
+    prepend (elem) {
+      elem = elem instanceof htmlElement ? elem : elem
+      this.insertBefore(elem, this.firstChild)
+      return this
+    },
+    appendTo (elem) {
+      dom(elem).append(this)
+      return this
+    },
+    prependTo (elem) {
+      dom(elem).prepend(this)
+      return this
+    },
+    inner (elem) {
+      this.clear()
+      elem = elem instanceof htmlElement ? elem : elem
+      if (typeof elem === 'string') this.innerHTML = elem
+      else this.append(elem)
+      return this    
+    },
+    clear () {
+      var child
+      while (child = this.firstChild) {
+        this.removeChild(child)
+      }
+      return this
+    },
+    remove (elem) {
+      elem = ( typeof elem === 'string' ? dom(elem) : elem ) || this
+      elem.parentNode && elem.parentNode.removeChild(elem)
+      return elem
+    },
+    replaceWith (elem) {
+      this.parentNode.replaceChild(elem || elem, this)
+      return dom(elem)
+    },
+    clone (deep) {
+      return dom(this.cloneNode(deep))
+    },
+    next () {
+      return dom(this.nextElementSibling)
+    },
+    parent () {
+      return dom(this.parentNode)
+    },
+    child () {
+      return dom(this.firstChild)
+    },
+    previous () {
+      return dom(this.previousElementSibling)
+    },
+    isImg () {
+      return !!(this && this.nodeName === 'IMG')
     }
   })
 
@@ -207,148 +334,5 @@
       return temp.childElementCount === 1 ? new htmlElement(temp.firstChild) : temp.children
     }
     return new htmlElement(document.createElement(elem))
-  }
-
-  // sandbox for code during (and maybe after) development
-  var safe = function (code) {
-    return function() {
-      try {
-        return code.apply(this, arguments)
-      } catch (e) {
-        console.trace(e)
-      }
-    }
-  }
-  var htmlElement = {}
-  htmlElement.prototype = {
-    class: safe(function (classes) {
-      if (classes) 
-        this.native.className = classes
-      else
-        return this.native.className
-      return this    
-    }),
-    style: safe(function (prop, val) {
-      if (typeof prop === 'object') {
-        util.each(prop, function (prop, val) {
-          this.style(prop, val)
-        }.bind(this))
-        return this
-      } else if (val !== undefined && val !== null) {
-        if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
-        this.native.style[prop] = val
-        return this
-      } else {
-        var style = window.getComputedStyle(this.native)
-        return prop ? style[prop] : style
-      }
-    }),
-    classtoggle: safe(function (cname) {
-      if (RegExp(cname).test(this.native.className)) {
-        this.native.className = this.native.className.replace(RegExp(' '+cname+'|'+cname+' |'+cname, 'g'), '')
-      } else {
-        this.native.className += ' ' + cname
-      }
-      
-      return this
-    }),
-    offset: safe(function () {
-      return {
-        top: this.native.offsetTop,
-        left: this.native.offsetLeft,
-        right: this.native.offsetRight
-      }
-    }),
-    height: safe(function () {
-      return this.native.offsetHeight
-    }),
-    innerHeight: safe(function () {
-      return this.native.clientHeight
-    }),
-    outerHeight: safe(function () {
-      return this.native.scrollHeight
-    }),
-    width: safe(function () {
-      return this.native.offsetWidth
-    }),
-    innerWidth: safe(function () {
-      if (this.selector === 'window') return this.native.innerWidth
-      else return this.native.clientWidth
-    }),
-    outerWidth: safe(function () {
-      return this.native.scrollWidth
-    }),
-    show: safe(function (block) {
-      var elemStyle = this.native.style
-      elemStyle.display = block ? 'block' : 'flex'
-      elemStyle.visibility = 'visible'
-      return this
-    }),
-    hide: safe(function (noreflow) {
-      this.native.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
-      return this
-    }),
-    toggle: safe(function (show) {
-      return this[show ? 'show' : 'hide']()
-    }),
-    append: safe(function (elem) {
-      elem = elem instanceof htmlElement ? elem.native : elem
-      this.native.appendChild(elem)
-      return this
-    }),
-    prepend: safe(function (elem) {
-      elem = elem instanceof htmlElement ? elem.native : elem
-      this.native.insertBefore(elem, this.native.firstChild)
-      return this
-    }),
-    appendTo: safe(function (elem) {
-      dom(elem).append(this)
-      return this
-    }),
-    prependTo: safe(function (elem) {
-      dom(elem).prepend(this)
-      return this
-    }),
-    inner: safe(function (elem) {
-      this.clear()
-      elem = elem instanceof htmlElement ? elem.native : elem
-      if (typeof elem === 'string') this.native.innerHTML = elem
-      else this.append(elem)
-      return this    
-    }),
-    clear: safe(function () {
-      var child
-      while (child = this.native.firstChild) {
-        this.native.removeChild(child)
-      }
-      return this
-    }),
-    remove: safe(function (elem) {
-      elem = ( typeof elem === 'string' ? dom(elem).native : elem ) || this.native
-      elem.parentNode && elem.parentNode.removeChild(elem)
-      return elem
-    }),
-    replaceWith: safe(function (elem) {
-      this.native.parentNode.replaceChild(elem.native || elem, this.native)
-      return dom(elem)
-    }),
-    clone: safe(function (deep) {
-      return dom(this.native.cloneNode(deep))
-    }),
-    next: safe(function () {
-      return dom(this.native.nextElementSibling)
-    }),
-    parent: safe(function () {
-      return dom(this.native.parentNode)
-    }),
-    child: safe(function () {
-      return dom(this.native.firstChild)
-    }),
-    previous: safe(function () {
-      return dom(this.native.previousElementSibling)
-    }),
-    isImg: safe(function () {
-      return !!(this.native && this.native.nodeName === 'IMG')
-    })
   }
 })()
