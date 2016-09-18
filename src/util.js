@@ -29,6 +29,7 @@ const L = (query, root = document) => {
 ;(() => {
 
   const 
+    // utility for ajax methods
     _openAndReturnReq = (method, url) => {
       const req = new XMLHttpRequest()
       req.open(method, url)
@@ -45,6 +46,10 @@ const L = (query, root = document) => {
           callback(key, obj[key], obj)
         }
       }
+    },
+    DOMContentLoaded (callback) {
+      if (document.readyState === 'complete') return callback()
+      document.on('DOMContentLoaded', callback)
     },
     router (config = {}) {
       const { routes = {}, view } = config
@@ -90,6 +95,17 @@ const L = (query, root = document) => {
         }
         req.send(data)
       })
+    },
+    create (elem) {
+      let newElement
+      if (elem[0] === '<') {
+        const temp = document.createElement('div')
+        temp.innerHTML = elem
+        newElement = ( temp.childElementCount === 1 ? temp.firstChild : temp.children )
+      } else {
+        newElement = document.createElement(elem)
+      }
+      return newElement
     }
   })
 })()

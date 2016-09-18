@@ -107,21 +107,19 @@
       return this[show ? 'show' : 'hide']()
     },
     append (elem) {
-      elem = elem instanceof htmlElement ? elem : elem
       this.appendChild(elem)
       return this
     },
     prepend (elem) {
-      elem = elem instanceof htmlElement ? elem : elem
       this.insertBefore(elem, this.firstChild)
       return this
     },
     appendTo (elem) {
-      dom(elem).append(this)
+      L(elem).append(this)
       return this
     },
     prependTo (elem) {
-      dom(elem).prepend(this)
+      L(elem).prepend(this)
       return this
     },
     html (elem) {
@@ -166,12 +164,4 @@
     }
   })
 
-  var create = function (elem) {
-    if (elem[0] === '<') {
-      var temp = document.createElement('div')
-      temp.innerHTML = elem
-      return temp.childElementCount === 1 ? new htmlElement(temp.firstChild) : temp.children
-    }
-    return new htmlElement(document.createElement(elem))
-  }
 })()

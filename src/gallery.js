@@ -1,82 +1,94 @@
-var livity = livity || {}
-livity.WebUIComponents = livity.WebUIComponents || []
+'use strict'
 
-livity.css.buildStylesheet([
-  '[data-livity-gallery] {\
-    display: flex;\
-    flex-wrap: wrap;\
-    text-align: center;\
-    justify-content: center;\
-  }',
-  '[data-livity-gallery] h2 {\
-    width: 100%;\
-  }',
-  '[data-livity-gallery] img {\
-    cursor: pointer;\
-    margin: 0.7em;\
-  }',
-  '[data-livity-gallery-overlay] img {\
-    position: relative;\
-    margin: auto;\
-    width: auto;\
-    max-width: 100%;\
-    max-height: 100%;\
-    box-shadow: 0 0 7em 5em hsla(100, 100%, 0%, 0.8);\
-  }',
-  '.livity-overlay-right,\
-  .livity-overlay-left {\
-    position: fixed;\
-    color: hsla(0, 0%, 75%, 1);\
-    cursor: pointer;\
-  }',
-  '.livity-overlay-right,\
-  .livity-overlay-left {\
-    z-index: 1;\
-    top: 45%;\
-    font-size: 4em;\
-  }',
-  '.livity-overlay-right {\
-    right: 2%;\
-    text-shadow: -0.05em 0 0.05em white;\
-  }',
-  '.livity-overlay-left {\
-    left: 2%;\
-    text-shadow: 0.05em 0 0.05em white;\
-  }',
-  '.livity-overlay-right:hover,\
-  .livity-overlay-left:hover {\
-    color: hsla(81, 44%, 75%, 1);\
-  }'
-])
+if (!(L.WebUIComponents)) {
+  L.WebUIComponents = {}
+}
 
-livity.dom.DOMContentLoaded(function() {
-  livity.dom.create('div')
-    .at('data-livity-gallery-overlay', '')
-    .at('id', 'overlay')
-    .class('livity-overlay')
-    .append(livity.dom.create('span')
-      .at('data-x', '')
-      .class('livity-overlay-x')
-      .inner('&#x2716;'))
-    .append(livity.dom.create('span')
-      .at('data-right', '')
-      .class('livity-overlay-right')
-      .inner('&#xbb;'))
-    .append(livity.dom.create('span')
-      .at('data-left', '')
-      .class('livity-overlay-left')
-      .inner('&#xab;'))
-  .appendTo('body')
-})
+;(() => {
+  const styleSheet = 
+    `
+      [data-livity-gallery] {
+        display: flex;
+        flex-wrap: wrap;
+        text-align: center;
+        justify-content: center;
+      }
 
-livity.WebUIComponents.push((function() {
-  var dom = window.livity.dom
-  
-  var gallery = function() {
-    dom('[data-livity-gallery]').listen('click on img', function (evt) {
-      dom.htmlElement.prototype.transformSrc = function () {
+      [data-livity-gallery] h2 {
+        width: 100%;
+      }
+
+      [data-livity-gallery] img {
+        cursor: pointer;
+        margin: 0.7em;
+      }
+
+      [data-livity-gallery-overlay] img {
+        position: relative;
+        margin: auto;
+        width: auto;
+        max-width: 100%;
+        max-height: 100%;
+        box-shadow: 0 0 7em 5em hsla(100, 100%, 0%, 0.8);
+      }
+
+      .livity-overlay-right,
+      .livity-overlay-left {
+        position: fixed;
+        color: hsla(0, 0%, 75%, 1);
+        cursor: pointer;
+      }
+
+      .livity-overlay-right,
+      .livity-overlay-left {
+        z-index: 1;
+        top: 45%;
+        font-size: 4em;
+      }
+
+      .livity-overlay-right {
+        right: 2%;
+        text-shadow: -0.05em 0 0.05em white;
+      }
+
+      .livity-overlay-left {
+        left: 2%;
+        text-shadow: 0.05em 0 0.05em white;
+      }
+
+      .livity-overlay-right:hover,
+      .livity-overlay-left:hover {
+        color: hsla(81, 44%, 75%, 1);
+      }
+    `
+
+  L.buildStylesheet(styleSheet.split('\n\n'))
+
+  L.DOMContentLoaded(() => {
+    L.create('div')
+      .attr('data-livity-gallery-overlay', '')
+      .attr('id', 'overlay')
+      .class('livity-overlay')
+      .append(L.create('span')
+        .attr('data-x', '')
+        .class('livity-overlay-x')
+        .html('&#x2716;'))
+      .append(L.create('span')
+        .attr('data-right', '')
+        .class('livity-overlay-right')
+        .html('&#xbb;'))
+      .append(L.create('span')
+        .attr('data-left', '')
+        .class('livity-overlay-left')
+        .html('&#xab;'))
+    .appendTo('body')
+  })
+
+  L.WebUIComponents.gallery = () => {
+    L('[data-livity-gallery]').on('click', 'img', function (evt) {
+      HTMLElement.prototype.transformSrc = () =>{
         return this.isImg()
-          && ( this.at('data-target') || this.at('src').replace('thumbs/', "") )
+          && ( this.attr('data-target') || this.attr('src').replace('thumbs/', "") )
       }
 
       var cache = [{
@@ -85,13 +97,13 @@ livity.WebUIComponents.push((function() {
         thumb: this
       },{
         thumb: this.next()
-      }], position = 1, x = dom('[data-x]')
+      }], position = 1, x = L('[data-x]')
 
       // Load the clicked image
       cache[1].img = newPreloadedImage(cache[1].thumb)
 
       // When the first image is finished loading, pre-load the previous and the next
-      dom(cache[1].img).listenOnce('load', function() {
+      L(cache[1].img).once('load', function() {
         for (var i=0, j=[0,2]; i<2; i++) {
           cache[j[i]].img = newPreloadedImage(cache[j[i]].thumb)
         }
@@ -99,19 +111,19 @@ livity.WebUIComponents.push((function() {
         x.show()
       })
       x.hide(true)
-      var originalBodyOverflow = dom('body').style('overflow')
-      dom('body').style('overflow', 'hidden')
+      const originalBodyOverflow = dom('body').style('overflow')
+      L('body').css('overflow', 'hidden')
 
-      dom('[data-livity-gallery-overlay]')
+      L('[data-livity-gallery-overlay]')
         .append(cache[1].img)
-        .listen('click on [data-x]', function (evt, overlay) {
-          dom('body').style('overflow', originalBodyOverflow)
+        .on('click', '[data-x]', function (evt, overlay) {
+          L('body').css('overflow', originalBodyOverflow)
           overlay.hide().deregisterEvents().find('img').remove()
-        }, {cache: true})
-        .listen('click on [data-right]', function (evt, overlay) {
+        })
+        .on('click', '[data-right]', function (evt, overlay) {
           scroll.call(overlay, {next: true})
         })
-        .listen('click on [data-left]', function (evt, overlay) {
+        .on('click', '[data-left]', function (evt, overlay) {
           scroll.call(overlay, {prev: true})
         })
       .show()
@@ -121,12 +133,12 @@ livity.WebUIComponents.push((function() {
         position += step
         if (cache[position].img) {
           var oldImg = this.find('img')
-          ,   newImg = dom(cache[position].img)
-          ,   windowInnerWidth = dom(window).innerWidth()
+          ,   newImg = L(cache[position].img)
+          ,   windowInnerWidth = window.innerWidth()
           ,   transitionendHandler = function () {
             positionGalleryControls(newImg)
-            this.at('style', '').remove()            
-            this.unlisten('transitionend', transitionendHandler)
+            this.attr('style', '').remove()            
+            this.off('transitionend', transitionendHandler)
           }
 
           toggleGalleryControls(false)
@@ -135,7 +147,7 @@ livity.WebUIComponents.push((function() {
             .transition(
               'margin-' + (next ? 'right' : 'left') + ' 1s ease-out', (windowInnerWidth - oldImg.width())/2, -windowInnerWidth,
               'opacity 1s ease-out', 1, 0
-            ).listen('transitionend', transitionendHandler)
+            ).on('transitionend', transitionendHandler)
 
           newImg
             [next ? 'appendTo' : 'prependTo']('[data-livity-gallery-overlay]')
@@ -164,20 +176,20 @@ livity.WebUIComponents.push((function() {
       }
 
       function toggleGalleryControls (on) {
-        dom('[data-x]').toggle(on)
-        dom('[data-right]').toggle(on)
-        dom('[data-left]').toggle(on)
+        L('[data-x]').toggle(on)
+        L('[data-right]').toggle(on)
+        L('[data-left]').toggle(on)
       }
 
       function positionGalleryControls (img) {
-        var x = dom('[data-x]')
+        var x = L('[data-x]')
         toggleGalleryControls(true)
         x.style({
-          top: dom(img).offset().top + x.height() + 'px',
-          right: dom(img).offset().left + x.width() + 'px'
+          top: L(img).offset().top + x.height() + 'px',
+          right: L(img).offset().left + x.width() + 'px'
         })
       }
     })
   }
-  return gallery
-})())
+})()
+
