@@ -52,20 +52,20 @@ const L = (query, root = document) => {
       document.on('DOMContentLoaded', callback)
     },
     router (config = {}) {
-      const { routes = {}, view } = config
+      const { view, templateDirectory, callbacks } = config
       let initialized = false
 
       window.on('hashchange', () => {
         const hash = window.location.hash
-        let route = routes.hasOwnProperty(hash) ? routes[hash] : hash
         // slice off the leading '#' and a following '/' if there is one
-        route = route.slice(route[1]==='/'?2:1)
+        const route = hash.slice(hash[1]==='/'?2:1)
         this.ajax({
-          url: `${config.markupDir}/${route}.html`
+          url: `${templateDirectory}/${route}.html`
         })
         .then( req => {
           L(view).html(req.response)
           document.trigger('view.'+route)
+          callbacks[route]()
         })
         .catch( err => {
           throw err
