@@ -1,7 +1,7 @@
 'use strict';
 
 /****
- ** LivityJS mutates the HTMLElement prototype.
+ ** LivityJS mutates extends the HTMLElement prototype.
  ** If you don't want this behavior then don't use it, but here are the reasons it was designed as such:
  ** 1. You can use any native DOM API method you'd like to select your element, which would be faster than
  **   using the L method.
