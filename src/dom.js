@@ -36,13 +36,6 @@
     text (text) {
       return text ? (this.textContent = text) && this : this.textContent
     },
-    class (classes) {
-      if (classes) 
-        this.className = classes
-      else
-        return this.className
-      return this    
-    },
     css (prop, val) {
       if (typeof prop === 'object') {
         util.each(prop, function (prop, val) {
@@ -57,6 +50,17 @@
         var style = window.getComputedStyle(this)
         return prop ? style[prop] : style
       }
+    },
+    addClass (classes) {
+      this.className = classes
+      return this    
+    },
+    removeClass (cnames) {
+      this.className.replace(/`${cnames.replace(' ', '|')}`/, '')
+      return this
+    },
+    getClass () {
+      return this.className
     },
     toggleClass (cname) {
       if (RegExp(cname).test(this.className)) {
