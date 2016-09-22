@@ -149,19 +149,19 @@
       return dom(elem)
     },
     clone (deep) {
-      return dom(this.cloneNode(deep))
+      return this.cloneNode(deep)
     },
     next () {
-      return dom(this.nextElementSibling)
+      return this.nextElementSibling
     },
     parent () {
-      return dom(this.parentNode)
+      return this.parentNode
     },
     child () {
       return this.firstChild
     },
     previous () {
-      return dom(this.previousElementSibling)
+      return this.previousElementSibling
     },
     isImg () {
       return !!(this && this.nodeName === 'IMG')
