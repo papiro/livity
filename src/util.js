@@ -48,7 +48,7 @@ const L = (query, root = document) => {
       }
     },
     DOMContentLoaded (callback) {
-      if (document.readyState === 'complete') return callback()
+      if (document.readyState !== 'loading') return callback()
       document.on('DOMContentLoaded', callback)
     },
     router (config = {}) {
