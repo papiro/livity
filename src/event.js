@@ -83,32 +83,43 @@
   Object.assign( EventTarget.prototype, {
     on (eType, ...args) {
       // Handle overloaded function without changing variable types
-      let target, handler
+      let target, handler, options
       switch (args.length) {
         case 1:
           target = null
           handler = args[0]
           break
         case 2:
-          target = args[0]
-          handler = args[1]
+          if (typeof args[0] === 'string') {
+            target = args[0]
+            handler = args[1]
+          } else {
+            target = null
+            handler = args[0]
+            options = args[1]
+          }
           break
+        case 3: 
+            target = args[0]
+            handler = args[1]
+            options = args[2]
+            break
         default:
           throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
       }
-      this._on(eType, target, handler)
+      this._on(eType, target, handler, options)
     },
     _on (eType, target, handler, options = {}) {
       function wrappedHandler (evt) {
         if (!target) return handler.bind(this)(evt)
         let iteration = evt.target
         const targets = [...evt.currentTarget.querySelectorAll(target)]
-        do {
-          if( ~targets.indexOf(iteration) ) {
+        while( iteration !== evt.currentTarget ) {
+          if (~targets.indexOf(iteration)) {
             return handler.bind(iteration)(evt)
           }
           iteration = iteration.parentElement 
-        } while( iteration !== evt.currentTarget )     
+        } 
       }
 
       function wrappedHandlerOnce (evt) {
@@ -127,7 +138,7 @@
       return this 
     },
     once () {
-      this._on.apply(this, [...arguments].push({ once: true }))
+      this.on.apply(this, [...arguments, { once: true }])
     },
     off (eType, handler) {
       Listener.deregister(new Listener(this, eType, handler))
