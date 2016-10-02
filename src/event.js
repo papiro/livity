@@ -22,9 +22,9 @@
     deregister () {
       Listener.handlerIndices(this.handler).filter(function (i) {
         return _listeners[i].type === this.type && _listeners[i].elem === this.elem
-      }, this).forEach(function (i) {
+      }, this).forEach( i => {
         _originalHandlers.splice(i, 1)
-        listener = _listeners.splice(i, 1)[0]
+        const listener = _listeners.splice(i, 1)[0]
         this.elem.removeEventListener(listener.type, listener._wrappedHandler)
       }, this)
     }
