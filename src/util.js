@@ -23,7 +23,15 @@ const L = (query, root = document) => {
     }
   }
   let match = root[queryMethod](query)
-  return match.length === 1 ? match[0] : match
+  return match 
+    ? 
+      (match.length === 1 
+       ? match[0] 
+       : match) 
+    : 
+      (() => {
+        throw new ReferenceError(`${query} has no match.`)
+      })()
 }
 
 ;(() => {
@@ -65,7 +73,7 @@ const L = (query, root = document) => {
         .then( req => {
           L(view).html(req.response)
           document.trigger('view.'+route)
-          callbacks[route]()
+          ;(typeof callbacks[route] === 'function') && callbacks[route]()
         })
         .catch( err => {
           throw err
