@@ -52,15 +52,20 @@
       }
     },
     addClass (classes) {
-      this.className = classes
+      this.className += ` ${classes}`
       return this    
     },
     removeClass (cnames) {
-      this.className.replace(/`${cnames.replace(' ', '|')}`/, '')
+      const matcher = `${cnames.replace(' ', '|')}`
+      this.className = this.className.replace(new RegExp(matcher), '')
       return this
     },
     getClass () {
       return this.className
+    },
+    hasClass (className) {
+      const matcher = new RegExp(`(^| +)${className}($| )`)
+      return matcher.test(this.className)
     },
     toggleClass (cname) {
       if (RegExp(cname).test(this.className)) {
