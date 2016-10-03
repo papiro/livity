@@ -79,8 +79,7 @@
       })
     }
   }
-
-  Object.assign( EventTarget.prototype, {
+  const eventMethods = {
     on (eType, ...args) {
       // Handle overloaded function without changing variable types
       let target, handler, options
@@ -169,5 +168,7 @@
         return this.className
       return this    
     }
-  })
+  }
+  Object.assign( Node.prototype, eventMethods )
+  Object.assign( Window.prototype, eventMethods )
 })()
