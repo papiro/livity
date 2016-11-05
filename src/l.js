@@ -49,8 +49,8 @@
       // clean up
       dataForType.handlers.splice(handlerIndex, 1)[0]
       if (!dataForType.handlers.length) {
-        dataForType = null
-        delete dataForType
+        data[type] = null
+        delete data[type]
         if (!Object.keys(data).length) {
           data = null
           _evtData.delete(elem)
