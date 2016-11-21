@@ -278,49 +278,61 @@
       return this.scrollWidth
     }
 
-    /* 
     show (block) {
       var elemStyle = this.style
       elemStyle.display = block ? 'block' : 'flex'
       elemStyle.visibility = 'visible'
       return this
-    },
+    }
+
     hide (noreflow) {
       this.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
       return this
-    },
+    }
+
     toggle (show) {
       return this[show ? 'show' : 'hide']()
-    },
+    }
+
     append (elem) {
       this.appendChild(elem)
       return this
-    },
+    }
+
     prepend (elem) {
       this.insertBefore(elem, this.firstChild)
       return this
-    },
+    }
+
     appendTo (elem) {
       L(elem).append(this)
       return this
-    },
+    }
+
     prependTo (elem) {
       L(elem).prepend(this)
       return this
-    },
-    html (elem) {
+    }
+
+    html (html) {
       this.empty()
-      if (typeof elem === 'string') this.innerHTML = elem
-      else this.append(elem)
+      this.forEach( elem => {
+        if (typeof html === 'string') elem.innerHTML = html
+        else elem.append(html)
+      })
       return this    
-    },
+    }
+
     empty () {
-      var child
-      while (child = this.firstChild) {
-        this.removeChild(child)
-      }
+      this.forEach( elem => {
+        let child
+        while (child = this.firstChild) {
+          this.removeChild(child)
+        }
+      })
       return this
-    },
+    }
+    /*
     remove (elem) {
       elem = ( typeof elem === 'string' ? dom(elem) : elem ) || this
       elem.parentNode && elem.parentNode.removeChild(elem)
@@ -476,6 +488,14 @@
     return new L(...args)
   }
 
+  const 
+    // utility for ajax
+    _openAndReturnReq = (method, url) => {
+      const req = new XMLHttpRequest()
+      req.open(method, url)
+      return req
+    }
+
   /** STATICS **/
   Object.assign(l, {
 
@@ -505,7 +525,7 @@
       * publishes event "view.{target}" where {target} is #/{target} or #{target}
     **/
     router (config = {}) {
-      const { view, templateDirectory } = config
+      const { view, templateDirectory, callbacks={} } = config
       let initialized = false
 
       window.on('hashchange', () => {
@@ -516,7 +536,7 @@
           url: `${templateDirectory}/${route}.html`
         })
         .then( req => {
-          L(view).html(req.response)
+          l(view).html(req.response)
           document.trigger('view.'+route)
           ;(typeof callbacks[route] === 'function') && callbacks[route]()
         })
@@ -563,6 +583,21 @@
         newElement = document.createElement(elem)
       }
       return newElement
+    },
+
+    /** @ the wrapper for the web-app
+      * - {callback} the script of the web-app, to be run onDOMContentLoaded
+    **/
+    init (callback = noop) {
+      try {
+        this.DOMContentLoaded(callback)
+      } catch (e) {
+        if (~location.search.indexOf('mobile')) {
+          document.write('<h1>'+e.stack+'</h1>')
+        } else {
+          console.error(e)
+        }
+      }
     }
   })
 
