@@ -119,10 +119,13 @@
       super()
       let queryMatch = window
       let queryMethod = 'querySelectorAll'
-      if (typeof query !== 'string') {
+      let match
+
+      if (query instanceof Node) {
+        match = query 
+      } else if (typeof query !== 'string') {
         throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
-      }
-      if ((/(\w[ \.#])|(^\[)/).test(query)) {
+      } else if ((/(\w[ \.#])|(^\[)/).test(query)) {
         queryMethod = 'querySelectorAll'
       } else {
         switch (query[0]) {
@@ -139,7 +142,7 @@
             queryMethod = 'getElementsByTagName'
         }
       }
-      const match = root[queryMethod](query)
+      match = match || root[queryMethod](query)
       const collection = match ? match.length ? Array.from(match) : [match] : []
       console.log(`query "${query}" returned `, collection)
       Object.assign(this, collection)
@@ -164,7 +167,7 @@
       }
 
       if (value === undefined) {
-        return this.getAttribute(name)
+        return this[0].getAttribute(name)
       }
 
       this.forEach( elem => {
@@ -278,15 +281,19 @@
       return this.scrollWidth
     }
 
-    show (block) {
-      var elemStyle = this.style
-      elemStyle.display = block ? 'block' : 'flex'
-      elemStyle.visibility = 'visible'
+    show (flex) {
+      this.forEach( elem => {
+        const elemStyle = elem.style
+        elemStyle.display = flex ? 'flex' : 'block'
+        elemStyle.visibility = 'visible'
+      })
       return this
     }
 
     hide (noreflow) {
-      this.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
+      this.forEach( elem => {
+        elem.style[noreflow ? 'visibility' : 'display'] = noreflow ? 'hidden' : 'none'
+      })
       return this
     }
 
