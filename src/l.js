@@ -120,7 +120,7 @@
       let queryMatch = window
       let queryMethod = 'querySelectorAll'
       let match
-
+      console.log(`query:::"${query}"`)
       if (query instanceof Node) {
         match = query 
       } else if (typeof query !== 'string') {
@@ -144,7 +144,7 @@
       }
       match = match || root[queryMethod](query)
       const collection = match ? match.length ? Array.from(match) : [match] : []
-      console.log(`query "${query}" returned `, collection)
+      console.log(`returned:::${collection}`)
       Object.assign(this, collection)
     }
 
