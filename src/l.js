@@ -442,17 +442,38 @@
     }
 
     trigger (eventName, detail) {
-      var customEvent = function () {
-        var customEvent
+      const nativeEvents = [
+        'mouseenter'
+      , 'mouseover'
+      , 'mousemove'
+      , 'mousedown'
+      , 'mouseup'
+      , 'click'
+      , 'dblclick'
+      , 'contextmenu'
+      , 'wheel'
+      , 'mouseleave'
+      , 'mouseout'
+      , 'select'
+      ]
+      if (~nativeEvents.indexOf(eventName)) {
+        this.forEach( elem => {
+          elem[eventName]()
+        })
+      } else {
+        let customEvent 
         try {
           customEvent = new CustomEvent(eventName, detail)
         } catch (e) {
+          // IE11
           customEvent = document.createEvent('CustomEvent')
-          customEvent.initEvent(eventName, true, true, detail)
+          customEvent.initCustomEvent(eventName, true, true, detail)
         }
-        return customEvent
+        this.forEach( elem => {
+          elem.dispatchEvent(customEvent)
+        })
       }
-      this.dispatchEvent(customEvent())
+      
       return this
     }
 
