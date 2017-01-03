@@ -626,6 +626,13 @@
           console.error(e)
         }
       }
+    },
+
+    /** @ serializes an object for inclusion as url parameters **/
+    params (obj) {
+      return Object.keys(obj).reduce( (prev, curr, i, arr) => {
+        return prev += `${curr}=${encodeURIComponent(obj[curr])}${i !== arr.length-1 ? '&' : ''}`
+      }, '?')
     }
   })
 
