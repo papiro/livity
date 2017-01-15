@@ -521,7 +521,7 @@
       *   view: "selector for the container where views are to be rendered",
       *   templateDirectory: "the root directory containing HTML markup files"
       * }
-      *
+       *
       * publishes event "view.{target}" where {target} is #/{target} or #{target}
     **/
     router (config = {}) {
@@ -586,11 +586,13 @@
     },
 
     /** @ the wrapper for the web-app
-      * - {callback} the script of the web-app, to be run onDOMContentLoaded
+      * - {head} js to execute immediately
+      * - {body} js to be run onDOMContentLoaded
     **/
-    init (callback = noop) {
+    init ({ head = noop, body = noop }) {
       try {
-        this.DOMContentLoaded(callback)
+        head()
+        this.DOMContentLoaded(body)
       } catch (e) {
         if (~location.search.indexOf('mobile')) {
           document.write('<h1>'+e.stack+'</h1>')
