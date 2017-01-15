@@ -504,8 +504,13 @@
     },
 
     /* $.ready substitute */
-    DOMContentLoaded (callback) {
+    DOMContentLoaded (_callback) {
       if (document.readyState !== 'loading') return callback()
+      const callback = () => {
+        _callback()
+        // cleanup
+        document.off('DOMContentLoaded', callback) 
+      }
       document.on('DOMContentLoaded', callback)
     },
 
