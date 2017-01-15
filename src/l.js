@@ -2,7 +2,15 @@
 
 ;(() => {
 
-  const _evtData = new WeakMap()
+  /**
+   * Decided to go with a memory-unsafe Map, rather than a memory-safe WeakMap for one reason:
+   * Allows the LivityAPI to provide methods to return detailed data for all event listeners
+   *  currently subscribed through the framework.  
+   *  With WeakMaps, I would need to keep a separate reference of every key (DOM node) in 
+   *  order to loop through and read each listener from the WeakMap.  
+   *  If a listener was registered through the framework, deregister it through the framework.  
+  **/
+  const _evtData = new Map()
   const noop = () => {}
 
   let numberOfListeners = 0
@@ -57,13 +65,6 @@
         }
       }
 
-      // Listener.handlerIndices(this.handler).filter(function (i) {
-      //   return _listeners[i].type === this.type && _listeners[i].elem === this.elem
-      // }, this).forEach( i => {
-      //   _originalHandlers.splice(i, 1)
-      //   const listener = _listeners.splice(i, 1)[0]
-      //   this.elem.removeEventListener(listener.type, listener._wrappedHandler)
-      // }, this)
       numberOfListeners--
     }
     
@@ -85,32 +86,24 @@
         })
     } 
 
-    // static handlerIndices (handler) {
-    //   var i = 0, indices = []
-    //   while (~(i = _originalHandlers.indexOf(handler, i+1))) {
-    //     indices.push(i)
-    //   }
-    //   return indices
-    // }
-
     static getListeners (c) {
       var filter
       switch (typeof c) {
+        case 'undefined':
+          return _evtData.entries()
+          break
         case 'string':
           filter = 'type'
-          break;
+          break
         case 'object':
           filter = 'elem'
-          break;
+          break
         case 'function':
           filter = 'handler'
-          break;
+          break
         default:
           throw new ReferenceError('Faulty criteria passed to Listener.getListeners')
       }        
-      return _listeners.filter(function (listener) {
-        return (filter === 'elem' ? listener[filter] : listener[filter]) === (filter === 'elem' ? c: c)
-      })
     }
   }
 
@@ -482,36 +475,6 @@
     }
   }
 
-  // const l = (query, root = document) => {
-  //   let queryMatch = window
-  //   let queryMethod = 'querySelectorAll'
-  //   if (typeof query !== 'string') {
-  //     throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
-  //   }
-  //   if ((/(\w[ \.#])|(^\[)/).test(query)) {
-  //     queryMethod = 'querySelectorAll'
-  //   } else {
-  //     switch (query[0]) {
-  //       case '#':
-  //         queryMethod = 'getElementById'
-  //         query = query.slice(1)
-  //         break
-  //       case '.':
-  //         queryMethod = 'getElementsByClassName'
-  //         query = query.slice(1)
-  //         break
-  //       default:
-  //         queryMethod = 'getElementsByTagName'
-  //     }
-  //   }
-  //   const match = root[queryMethod](query)
-  //   const collection = match ? Array.isArray(match) ? match : Array.from(match) : []
-  //   console.log(`query "${query}" returned `, collection)
-  //   collection.prototype = methods
-  //   return collection
-  //   // return Object.assign(collection, methods)
-  // }
-
   const l = (...args) => {
     return new L(...args)
   }
@@ -526,6 +489,10 @@
 
   /** STATICS **/
   Object.assign(l, {
+
+    getListeners (...args) {
+      return Listener.getListeners(...args)
+    },
 
     /* @ execute a callback for every key:value in an object */
     each (obj, callback) {
