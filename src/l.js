@@ -90,7 +90,7 @@
       var filter
       switch (typeof c) {
         case 'undefined':
-          return _evtData.entries()
+          return [..._evtData]
           break
         case 'string':
           filter = 'type'
@@ -387,7 +387,7 @@
         default:
           throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
       }
-      this._on(eType, target, handler, options)
+      return this._on(eType, target, handler, options)
     }
 
     _on (eType, target, handler, options = {}) {
@@ -426,7 +426,13 @@
     }
 
     off (eType, handler) {
-      Listener.deregister(new Listener(this, eType, handler))
+      this.forEach( elem => {
+        Listener.deregister(new Listener(
+            elem
+          , eType
+          , handler
+       ))
+      })
     }
 
     deregisterEvents () {
@@ -471,7 +477,7 @@
     }
 
     getListeners () {
-      return Listener.getListeners
+      return Listener.getListeners()
     }
   }
 
@@ -509,9 +515,9 @@
       const callback = () => {
         _callback()
         // cleanup
-        document.off('DOMContentLoaded', callback) 
+        l(document).off('DOMContentLoaded', callback) 
       }
-      document.on('DOMContentLoaded', callback)
+      l(document).on('DOMContentLoaded', callback)
     },
 
     /** @ a manager for page routing based on location.hash
@@ -622,6 +628,6 @@
   }
   // override
   console.debug = (...args) => {
-    if (DEBUG) console.log(...args)
+    if (window.DEBUG) console.log(...args)
   }
 })()
