@@ -31,7 +31,7 @@
       obj.handlers.push(handler)
 
       if (++numberOfListeners % 10 === 0) {
-        window.DEBUG && console.log(`Just reached ${numberOfListeners} event listeners`)
+        console.debug(`Just reached ${numberOfListeners} event listeners`)
       }
     }
 
@@ -120,7 +120,7 @@
       let queryMatch = window
       let queryMethod = 'querySelectorAll'
       let match
-      window.DEBUG && console.log(`query:::"${query}"`)
+      console.debug(`query:::"${query}"`)
       if (query instanceof Node) {
         match = query 
       } else if (typeof query !== 'string') {
@@ -144,7 +144,7 @@
       }
       match = match || root[queryMethod](query)
       const collection = match ? match.length ? Array.from(match) : [match] : []
-      window.DEBUG && console.log(`returned:::${collection}`)
+      console.debug(`returned:::${collection}`)
       Object.assign(this, collection)
     }
 
@@ -645,5 +645,9 @@
         callback(key, this[key], this)
       }
     } 
+  }
+  // override
+  console.debug = (...args) => {
+    if (DEBUG) console.log(...args)
   }
 })()
