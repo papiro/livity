@@ -517,7 +517,7 @@
 
     /* $.ready substitute */
     DOMContentLoaded (_callback) {
-      if (document.readyState !== 'loading') return callback()
+      if (document.readyState !== 'loading') return _callback()
       const callback = () => {
         _callback()
         // cleanup
