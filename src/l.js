@@ -198,7 +198,9 @@
 
     /* add a class */
     addClass (classes) {
-      this.className += ` ${classes}`
+      this.forEach( elem => {
+        elem.className += ` ${classes}`
+      })
       return this    
     }
 
@@ -207,7 +209,9 @@
       const splitCnames = cnames.split(' ')
       splitCnames.forEach( cname => {
         const matcher = ` ${cname}|${cname} |${cname}`
-        this.className = this.className.replace(new RegExp(matcher, 'g'), '')        
+        this.forEach( elem => {
+          elem.className = elem.className.replace(new RegExp(matcher, 'g'), '')        
+        })
       })
       return this
     }
