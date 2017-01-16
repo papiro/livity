@@ -391,7 +391,7 @@
             options = args[2]
             break
         default:
-          throw new TypeError('HTMLElement.prototype.on function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
+          throw new TypeError('"on" function signature is (event_type(String)[required], event_target(HTMLElement|String)[optional], handler(Function)[required], options(Object)[optional]')
       }
       return this._on(eType, target, handler, options)
     }
@@ -411,7 +411,7 @@
 
       function wrappedHandlerOnce (evt) {
         wrappedHandler.call(this, evt)
-        this.off(eType, handler)
+        l(this).off(eType, handler)
       }
 
       this.forEach( elem => {
