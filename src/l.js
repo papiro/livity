@@ -298,8 +298,10 @@
       return this[show ? 'show' : 'hide']()
     }
 
-    append (elem) {
-      this.appendChild(elem)
+    append (child) {
+      this.forEach( elem => {
+        elem.appendChild(child)
+      })
       return this
     }
 
