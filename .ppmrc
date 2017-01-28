@@ -1,9 +1,0 @@
-# Project name
-  name=livityjs
-
-# Project repositories
-  primary=git@godswhim.us:LivityJS.git
-  secondary=git@gitlab.com:papiro/LivityJS.git
-  tertiary=/var/backups/LivityJS.git
-
-# Project submodules
