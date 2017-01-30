@@ -140,6 +140,12 @@
       Object.assign(this, collection)
     }
 
+    // Alas, native Array map is busted on the L subclass :(
+    // So convert into a true Array, run map, and actually return a new instance
+    map (...args) {
+      return new L(Array.from(this).map(...args))
+    }
+
     /* executes a new element selection using "this" as the root */
     find (query) {
       return this.reduce( (prev, elem) => {
@@ -358,9 +364,13 @@
     parent () {
       return this.parentNode
     },
+    */
     child () {
-      return this.firstChild
-    },
+      return this.map( elem => {
+        return elem.firstChild 
+      })
+    }
+    /*
     previous () {
       return this.previousElementSibling
     },
