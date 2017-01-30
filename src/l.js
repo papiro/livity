@@ -135,7 +135,7 @@
         }
       }
       match = match || root[queryMethod](query)
-      const collection = match ? match.length ? Array.from(match) : [match] : []
+      const collection = match ? ( match.length || match instanceof HTMLCollection ) ? Array.from(match) : [match] : []
       console.debug(`returned:::${collection}`)
       Object.assign(this, collection)
     }
