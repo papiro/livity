@@ -110,8 +110,7 @@
   class L extends Array {
     constructor (query, root = document) {
       super()
-      let queryMatch = window
-      let queryMethod = 'querySelectorAll'
+      let queryMethod = ''
       let match
       console.debug(`query:::"${query}"`)
       if (query instanceof Node) {
@@ -478,7 +477,6 @@
           elem.dispatchEvent(customEvent)
         })
       }
-      
       return this
     }
 
@@ -540,7 +538,7 @@
       const { view, templateDirectory, callbacks={} } = config
       let initialized = false
 
-      window.on('hashchange', () => {
+      l(window).on('hashchange', () => {
         const hash = window.location.hash
         // slice off the leading '#' and a following '/' if there is one
         const route = hash.slice(hash[1]==='/'?2:1)
@@ -557,7 +555,7 @@
         })
         initialized = true
       })
-      window.location.hash && !initialized && window.trigger('hashchange')
+      window.location.hash && !initialized && l(window).trigger('hashchange')
     },
 
     /* @ creates and returns a Promise representing an HTTP response */
