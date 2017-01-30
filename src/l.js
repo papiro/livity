@@ -110,10 +110,13 @@
   class L extends Array {
     constructor (query, root = document) {
       super()
-      let queryMethod = ''
-      let match
+      let queryMethod = '', match
       console.debug(`query:::"${query}"`)
-      if (query instanceof Node || query instanceof Window) {
+      // special types
+      // simply wrap if already an array
+      if (query instanceof Array) {
+        return Object.assign(this, query)
+      } else if (query instanceof Node || query instanceof Window) {
         match = query 
       } else if (typeof query !== 'string') {
         throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
