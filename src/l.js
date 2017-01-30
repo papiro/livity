@@ -113,7 +113,7 @@
       let queryMethod = ''
       let match
       console.debug(`query:::"${query}"`)
-      if (query instanceof Node) {
+      if (query instanceof Node || query instanceof Window) {
         match = query 
       } else if (typeof query !== 'string') {
         throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
@@ -228,11 +228,13 @@
 
     /* if class exists, remove class, otherwise, add class */
     toggleClass (cname) {
-      if (RegExp(cname).test(this.className)) {
-        this.removeClass(cname)
-      } else {
-        this.addClass(cname)
-      }
+      this.forEach( elem => {
+        if (RegExp(cname).test(elem.className)) {
+          l(elem).removeClass(cname)
+        } else {
+          l(elem).addClass(cname)
+        }
+      })
       
       return this
     }
@@ -547,7 +549,7 @@
         })
         .then( req => {
           l(view).html(req.response)
-          document.trigger('view.'+route)
+          l(document).trigger('view.'+route)
           ;(typeof callbacks[route] === 'function') && callbacks[route]()
         })
         .catch( err => {
