@@ -1,7 +1,9 @@
 #!/bin/sh
 
 # cat all non-commented files listed in .build into a single distribution file
-cat src/.build | grep "^[^#]" | sed -r s-"(\w*)"-src/\\1.js- | xargs cat > dist/livity.js
+src=`cat src/.build | grep "^[^#]" | sed -r s-"(\w*)"-src/\\\1.js-`
+echo "concatenating ${src} into a single distributable : livity.js"
+cat "${src}" > dist/livity.js || exit 1
 
 # and then transpile and minify everything
 babel --extensions=.js --source-maps=true --no-babelrc --minified --compact=true --presets=es2015 dist/livity.js --out-dir . 
