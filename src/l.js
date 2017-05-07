@@ -627,6 +627,44 @@
       }
     },
 
+    history: {
+      loadRoute (state) {
+        const { container } = state
+        if (container) {
+          l.ajax({
+            url: state.url
+          }).then( data => {
+            l(container).replaceWith(data)
+          })
+        }
+      },
+      init ({ routes, rendering }) {
+        if (!routes) throw new ReferenceError('Need { routes: {} } for intelliRouter')
+        window.onpopstate = ({ state }) => {
+          // this.loadRoute(state)
+        }
+        if (history.state === null) { // When loading the page for the first time
+          const 
+            route = window.location.pathname,
+            routeData = routes[route]
+          ;
+          history.replaceState(routeData.state, routeData.title || '', route)
+        }
+        l.DOMContentLoaded(() => {
+          l('a').on('click', (evt) => {
+            evt.preventDefault()
+            const elem = evt.currentTarget
+            if (elem.href === window.location.href) return
+            const 
+              route = l(elem).attr('href'),
+              routeData = routes[route]
+            ;
+            history.pushState(routeData.state, routeData.title || '', route)
+          })          
+        })        
+      }
+    },
+
     /** @ serializes an object for inclusion as url parameters **/
     params (obj) {
       return Object.keys(obj).reduce( (prev, curr, i, arr) => {
@@ -636,7 +674,7 @@
   })
 
   window.l = l
-
+    
   // non-obtrusive prototype methods
   Object.prototype.forIn = (callback) => {
     for (let key in this) {
