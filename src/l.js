@@ -534,6 +534,10 @@
       }
     },
 
+    trim (str) {
+      return str.replace(/(^\s*)|(\s*$)/g, '')
+    },
+
     /* $.ready substitute */
     DOMContentLoaded (_callback) {
       if (document.readyState !== 'loading') return _callback()
