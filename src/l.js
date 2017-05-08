@@ -578,10 +578,13 @@
     },
 
     /* @ creates and returns a Promise representing an HTTP response */
-    ajax ({ url = '', method = 'GET', data }) {
+    ajax ({ url = '', method = 'GET', data, headers }) {
       return new Promise( (resolve, reject) => {
         const req = _openAndReturnReq(method, url)
-
+        
+        Object.keys(headers).forEach( header => {
+          req.setRequestHeader(header, headers[header])
+        })
         req.onreadystatechange = () => {
           if (req.readyState === 4) {
             switch (Math.floor(req.status/100)) {
