@@ -613,6 +613,7 @@
     **/
     create (elem) {
       let newElement
+      elem = l.trim(elem)
       if (elem[0] === '<') {
         const temp = document.createElement('div')
         temp.innerHTML = elem
