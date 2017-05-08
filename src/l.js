@@ -348,12 +348,14 @@
       })
       return this
     }
-    /*
+    
     remove (elem) {
-      elem = ( typeof elem === 'string' ? dom(elem) : elem ) || this
-      elem.parentNode && elem.parentNode.removeChild(elem)
-      return elem
-    },*/
+      this.forEach( elem => {
+        elem.parentNode && elem.parentNode.removeChild(elem)
+      })
+      return this
+    }
+
     replaceWith (newElem) {
       this.forEach( elem => {
         elem.parentNode.replaceChild(newElem, elem)
