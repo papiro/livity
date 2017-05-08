@@ -353,11 +353,13 @@
       elem = ( typeof elem === 'string' ? dom(elem) : elem ) || this
       elem.parentNode && elem.parentNode.removeChild(elem)
       return elem
-    },
-    replaceWith (elem) {
-      this.parentNode.replaceChild(elem || elem, this)
-      return dom(elem)
-    },
+    },*/
+    replaceWith (newElem) {
+      this.forEach( elem => {
+        elem.parentNode.replaceChild(newElem, elem)
+      })
+      return this
+    }/*
     clone (deep) {
       return this.cloneNode(deep)
     },
