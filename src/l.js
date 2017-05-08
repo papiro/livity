@@ -512,7 +512,9 @@
       const req = new XMLHttpRequest()
       req.open(method, url)
       return req
-    }
+    },
+    uniqueTags = ['TITLE', 'HEADER', 'MAIN', 'FOOTER']
+  ;
 
   /** STATICS **/
   Object.assign(l, {
@@ -630,20 +632,26 @@
     },
 
     history: {
-      loadRoute (state) {
-        const { container } = state
-        if (container) {
-          l.ajax({
-            url: state.url
-          }).then( data => {
-            l(container).replaceWith(data)
+      loadRoute ({ url }) {
+        l.ajax({ 
+          url,
+          headers: {
+            'Accept': 'text/html'            
+          }
+        }).then( data => {
+          [...l.create(data.response)].forEach( node => {
+            let replacement = node.tagName
+            if (!~uniqueTags.indexOf(node.tagName)) {
+              replacement = '#' + node.id
+            }
+            l(replacement).replaceWith(node)
           })
-        }
+        })
       },
       init ({ routes, rendering }) {
         if (!routes) throw new ReferenceError('Need { routes: {} } for intelliRouter')
         window.onpopstate = ({ state }) => {
-          // this.loadRoute(state)
+          this.loadRoute(state)
         }
         if (history.state === null) { // When loading the page for the first time
           const 
@@ -652,16 +660,17 @@
           ;
           history.replaceState(routeData.state, routeData.title || '', route)
         }
+        this.loadRoute(history.state)
         l.DOMContentLoaded(() => {
-          l('a').on('click', (evt) => {
+          l('body').on('click', 'a', function (evt) {
             evt.preventDefault()
-            const elem = evt.currentTarget
-            if (elem.href === window.location.href) return
+            if (this.href === window.location.href) return
             const 
-              route = l(elem).attr('href'),
+              route = l(this).attr('href'),
               routeData = routes[route]
             ;
             history.pushState(routeData.state, routeData.title || '', route)
+            l.history.loadRoute(routeData.state)
           })          
         })        
       }
