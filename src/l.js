@@ -641,36 +641,57 @@
       }
     },
 
+    modal: {
+      open (content) {
+        l('body').append(
+          l.create(`
+            <div id="livityModal" class="modal">
+              <span class="modal_close">X</span>
+              ${content}
+            </div>
+          `)
+        )
+      },
+      closeAll () {
+        l('.modal').remove()
+      }
+    },
+
     history: {
-      loadRoute ({ url }) {
-        l.ajax({ 
+      loadRoute ({ url, modal = false, route }, cb = noop) {
+        l.ajax({
           url,
           headers: {
             'Accept': 'text/html'            
           }
         }).then( data => {
-          [...l.create(data.response)].forEach( node => {
-            let replacement = node.tagName
-            if (!~uniqueTags.indexOf(node.tagName)) {
-              replacement = '#' + node.id
-            }
-            l(replacement).replaceWith(node)
-          })
+          l.modal.closeAll()
+          if (modal) {
+            this.loadRoute(this.routes['/'].state, () => {
+              l.modal.open(data.response)              
+            })
+          } else {
+            [...l.create(data.response)].forEach( node => {
+              let replacement = node.tagName
+              if (!~uniqueTags.indexOf(node.tagName)) {
+                replacement = '#' + node.id
+              }
+              l(replacement).replaceWith(node)
+            })            
+          }
+          cb()
+          // this.callbacks[route] && this.callbacks[route]()
         })
       },
+
       init ({ routes, rendering }) {
-        if (!routes) throw new ReferenceError('Need { routes: {} } for intelliRouter')
+        if (!routes) throw new ReferenceError('Need { routes: {} } for router init')
+        this.routes = routes
+
         window.onpopstate = ({ state }) => {
           this.loadRoute(state)
         }
-        if (history.state === null) { // When loading the page for the first time
-          const 
-            route = window.location.pathname,
-            routeData = routes[route]
-          ;
-          history.replaceState(routeData.state, routeData.title || '', route)
-        }
-        this.loadRoute(history.state)
+
         l.DOMContentLoaded(() => {
           l('body').on('click', 'a', function (evt) {
             evt.preventDefault()
@@ -679,10 +700,20 @@
               route = l(this).attr('href'),
               routeData = routes[route]
             ;
-            history.pushState(routeData.state, routeData.title || '', route)
+            history.pushState(Object.assign(routeData.state, { route }), routeData.title || '', route)
             l.history.loadRoute(routeData.state)
           })          
-        })        
+        })  
+        
+        if (history.state === null) { // When loading the page for the first time
+          const 
+            route = window.location.pathname,
+            routeData = routes[route]
+          ;
+          history.replaceState(Object.assign(routeData.state, { route }), routeData.title || '', route)
+        }
+
+        this.loadRoute(history.state)  
       }
     },
 
