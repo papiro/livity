@@ -655,10 +655,12 @@
     },
 
     modal: {
+      count: 0,
       open (content) {
         l('body').append(
           l.create(`
-            <div id="livityModal" class="modal">
+            <div id="livityModal" class="modal" 
+                 style="top: ${++this.count * 5}vh; left: ${this.count * 5}vw;">
               <span class="modal_close">X</span>
               ${content}
             </div>
@@ -667,66 +669,106 @@
       },
       closeAll () {
         l('.modal').remove()
+        this.count = 0
       }
     },
 
+    /***
+      * 'history' namespace includes methods for handling view routing using 
+      *   history.[push|replace]State
+    ***/
     history: {
-      loadRoute ({ url, modal = false, route }, cb = noop) {
-        l.ajax({
-          url,
-          headers: {
-            'Accept': 'text/html'            
-          }
-        }).then( data => {
-          l.modal.closeAll()
-          if (modal) {
-            this.loadRoute(this.routes['/'].state, () => {
-              l.modal.open(data.response)              
-            })
-          } else {
-            [...l.create(data.response)].forEach( node => {
-              let replacement = node.tagName
-              if (!~uniqueTags.indexOf(node.tagName)) {
-                replacement = '#' + node.id
+      loadRoute ({ route }) {
+        const 
+          routeDataPromiseArray = [],
+          pushPromise = (url) => {
+            routeDataPromiseArray.push(l.ajax({
+              url,
+              headers: {
+                'Accept': 'text/html'
               }
-              l(replacement).replaceWith(node)
-            })            
+            }))
           }
-          cb()
-          // this.callbacks[route] && this.callbacks[route]()
+
+        route.split('/modal').forEach( route => {
+          pushPromise(this.routes[route || '/'].state.url)
         })
+        Promise.all(routeDataPromiseArray).then( dataCollection => {
+          l.modal.closeAll()
+          dataCollection.forEach( ({ response }, index) => {
+            /* Always load the first route as the base for any modals */
+            if (index === 0) {
+              [...l.create(response)].forEach( node => {
+                let replacement = node.tagName
+                if (!~uniqueTags.indexOf(node.tagName)) {
+                  replacement = '#' + node.id
+                }
+                l(replacement).replaceWith(node)
+              })              
+            } else {
+              l.modal.open(response)              
+            }
+          })
+        }).catch( reason => {
+          console.error(reason)
+        })
+      },
+
+      parseRoute (url = window.location.href) {
+        const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
+        return {
+          route,
+          query: l.deserialize(query)
+        }
+      },
+
+      bindHyperlinks () {
+        // intercept clicks on links and instead of letting the browser make a 
+        //  page request, handle it with javascript & view injection
+        l(document).on('click', 'a', (evt, elem) => {
+          evt.preventDefault()
+          const route = l(elem).attr('href')
+          // ignore clicks on links which take us to the same route
+          if (route === history.state.route) return
+
+          this.createState(route)
+        })       
+      },
+
+      createState (route) {
+        this.modifyState(route, 'push')
+      },
+
+      updateState (route) {
+        this.modifyState(route, 'replace')
+      },
+      
+      modifyState (route, method) {
+        // just use the topmost layer of the route if modals are involved
+        const { state, title } = this.routes[route.split('modal').pop()]
+
+        // Tack the route into the state object for super convenience
+        history[`${method}State`](Object.assign(state, { route }), title || '', route)
+        // and then pass it along...
+        this.loadRoute(state)  
       },
 
       init ({ routes, rendering }) {
         if (!routes) throw new ReferenceError('Need { routes: {} } for router init')
-        this.routes = routes
+        
+        Object.assign(this, { routes })
 
         window.onpopstate = ({ state }) => {
           this.loadRoute(state)
         }
 
-        l.DOMContentLoaded(() => {
-          l('body').on('click', 'a', function (evt) {
-            evt.preventDefault()
-            if (this.href === window.location.href) return
-            const 
-              route = l(this).attr('href'),
-              routeData = routes[route]
-            ;
-            history.pushState(Object.assign(routeData.state, { route }), routeData.title || '', route)
-            l.history.loadRoute(routeData.state)
-          })          
-        })  
-        
-        if (history.state === null) { // When loading the page for the first time
-          const 
-            route = window.location.pathname,
-            routeData = routes[route]
-          ;
-          history.replaceState(Object.assign(routeData.state, { route }), routeData.title || '', route)
-        }
+        this.bindHyperlinks()
 
-        this.loadRoute(history.state)  
+        if (history.state === null) { // When loading the page for the first time
+          this.updateState(window.location.pathname)
+        } else {
+          this.loadRoute(history.state)
+        }
       }
     },
 
