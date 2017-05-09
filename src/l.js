@@ -427,12 +427,14 @@
 
     _on (eType, target, handler, options = {}) {
       function wrappedHandler (evt) {
-        if (!target) return handler.bind(this)(evt)
+        if (!target) return handler.bind(this)(evt, this)
+        // The rest of this is to handle event delegation
         let iteration = evt.target
         const targets = [...evt.currentTarget.querySelectorAll(target)]
-        while( iteration !== evt.currentTarget ) {
+        // iteration is null when we've traversed the DOM and exited
+        while( iteration && iteration !== evt.currentTarget ) {
           if (~targets.indexOf(iteration)) {
-            return handler.bind(iteration)(evt)
+            return handler.bind(iteration)(evt, iteration)
           }
           iteration = iteration.parentElement 
         } 
