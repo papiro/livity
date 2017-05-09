@@ -777,6 +777,16 @@
       return Object.keys(obj).reduce( (prev, curr, i, arr) => {
         return prev += `${curr}=${encodeURIComponent(obj[curr])}${i !== arr.length-1 ? '&' : ''}`
       }, '?')
+    },
+
+    /** @ deserializes a query string into an object **/
+    deserialize (str) {
+      const obj = {}
+      str.substr(1).split('&').forEach( keyVal => {
+        const [key, val] = keyVal.split('=')
+        obj[key] = decodeURIComponent(val)
+      })
+      return obj
     }
   })
 
