@@ -26,12 +26,23 @@
       elem.addEventListener(type, _wrappedHandler)
       
       // initialize new listener data
-      !_evtData.has(elem) && _evtData.set(elem, { 
-        [type]: {
-          _wrappedHandlers: [],
-          handlers: []
-        }
-      })
+      if (!_evtData.has(elem)) {
+        _evtData.set(elem, {})
+      }
+      if (!_evtData.get(elem)[type]) {
+        Object.assign(_evtData.get(elem), {
+          [type]: {
+            _wrappedHandlers: [],
+            handlers: []
+          }
+        })
+      }
+      // !_evtData.has(elem) && _evtData.set(elem, { 
+      //   [type]: {
+      //     _wrappedHandlers: [],
+      //     handlers: []
+      //   }
+      // })
 
       const obj = _evtData.get(elem)[type]
       // store the listener data
