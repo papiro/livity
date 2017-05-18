@@ -124,7 +124,7 @@ window.DEBUG = true
     constructor (query, root = document) {
       super()
       let queryMethod = '', match
-      console.debug(`query:::"${query}"`)
+      console.debug('query:::', query)
       // special types
       // simply wrap if already an array
       if (query instanceof Array) {
@@ -152,7 +152,7 @@ window.DEBUG = true
       }
       match = match || root[queryMethod](query)
       const collection = match ? ( match.length || match instanceof HTMLCollection ) ? Array.from(match) : [match] : []
-      console.debug(`returned:::${collection}`)
+      console.debug('returned::: ', collection)
       Object.assign(this, collection)
     }
 
@@ -682,9 +682,9 @@ window.DEBUG = true
     history: {
       loadRoute ({ route }) {
         const 
-          routeDataPromiseArray = [],
+          routePromiseArray = [],
           pushPromise = (url) => {
-            routeDataPromiseArray.push(l.ajax({
+            routePromiseArray.push(l.ajax({
               url,
               headers: {
                 'Accept': 'text/html'
@@ -692,11 +692,21 @@ window.DEBUG = true
             }))
           }
 
-        route.split('/modal').forEach( route => {
-          pushPromise(this.routes[route || '/'].state.url)
+        route.split('/-').forEach( route => {
+          const routeData = this.routes[route || '/']
+          if (routeData.state.url) {
+            pushPromise(routeData.state.url)
+          } else {
+            const promise = new Promise()
+            routePromiseArray.push(promise)
+            routeData.callback(promise)
+          }
         })
-        Promise.all(routeDataPromiseArray).then( dataCollection => {
-          l.modal.closeAll()
+
+        Promise.all(routePromiseArray).then( dataCollection => {
+          // start off with a clean slate by closing all modals
+          // l.modal.closeAll()
+
           dataCollection.forEach( ({ response }, index) => {
             /* Always load the first route as the base for any modals */
             if (index === 0) {
@@ -724,24 +734,15 @@ window.DEBUG = true
         }
       },
 
-      bindHyperlinks () {
-        // intercept clicks on links and instead of letting the browser make a 
-        //  page request, handle it with javascript & view injection
-        l(document).on('click', 'a', (evt, elem) => {
-          evt.preventDefault()
-          const route = l(elem).attr('href')
-          // ignore clicks on links which take us to the same route
-          if (route === history.state.route) return
-
-          this.createState(route)
-        })       
-      },
+      bindHyperlinks (viewInjection) {
+               
+      },      
 
       createState (route) {
         this.modifyState(route, 'push')
       },
 
-      updateState (route) {
+      replaceState (route) {
         this.modifyState(route, 'replace')
       },
       
@@ -753,25 +754,7 @@ window.DEBUG = true
         history[`${method}State`](Object.assign(state, { route }), title || '', route)
         // and then pass it along...
         this.loadRoute(state)  
-      },
-
-      init ({ routes, rendering }) {
-        if (!routes) throw new ReferenceError('Need { routes: {} } for router init')
-        
-        Object.assign(this, { routes })
-
-        window.onpopstate = ({ state }) => {
-          this.loadRoute(state)
-        }
-
-        this.bindHyperlinks()
-
-        if (history.state === null) { // When loading the page for the first time
-          this.updateState(window.location.pathname)
-        } else {
-          this.loadRoute(history.state)
-        }
-      }
+      }        
     },
 
     /** @ serializes an object for inclusion as url parameters **/
@@ -792,7 +775,172 @@ window.DEBUG = true
     }
   })
 
-  window.l = l
+
+  /**
+  **  The HistoryStateCreator is an interface for 
+  **    Application-state routing
+  **      - using history.[push|replace]State
+  **      - hijacking all application link (<a>) clicks
+  **      - loading of views and setting of state based on URL pathname, query,
+  **        fragment, and state objects stored and pulled from window.localStorage.
+  **      - generation of URL to give to someone in order to recreate a specific
+  **        application state.
+  **      - on-demand restoration of state from a previous session using localStorage
+  **      - ability to navigate state using browser back/forward buttons
+  **      - in-built ease of implementing advanced features such as auto-save and "undo" on forms
+  **/
+  class HistoryStateCreator {
+    constructor ({ rendering = 'client', restore = false, routes = {} }) {
+      // Assign instance properties
+      Object.assign(this, {
+        // Reset app to first tick
+        tick: 1,
+        // setup Proxy interface for localStorage
+        store: new Proxy({}, {
+          get (target, prop) {
+            return target[prop]
+          },
+          set (target, prop, val) {
+            target[prop] = val
+            localStorage.setItem(`store${this.tick}`, val)
+          }
+        }),
+        routes
+      })
+
+      window.onpopstate = ({ state }) => {
+        console.debug('Popping state ', state)
+        this.loadRoute(state)
+      }
+
+      if (history.state === null) { // When loading the page for the first time
+        console.debug('history.state is null, so replacing entry')
+        this.replaceEntry(window.location.pathname)
+      } else {
+        console.debug('history.state already exists so using it to load route')
+        this.renderState(history.state)
+      }
+
+      if (restore) {
+        // push all the states from localStorage
+        console.debug('restoring application state from localStorage')
+      } else {
+        console.debug('clearing localStorage...')
+        localStorage.clear()
+      }
+
+      // intercept clicks on links
+      l(document).on('click', 'a', (evt, elem) => {
+        evt.preventDefault()
+        const route = l(elem).attr('href')
+        // instead of letting the browser make a page request, handle it with javascript & view injection
+        if (rendering === 'client') {
+          console.debug('intercepting link click and loading route ', route)
+          // ignore clicks on links which take us to the same route
+          if (route === history.state.route) return
+          this.createState(route)
+        } 
+        // ...or serve an html page
+        else {
+          window.location = route + '.html'
+        }
+      })
+    }
+
+    // loadRoute ({ route }) {
+    //   const 
+    //     routePromiseArray = [],
+    //     pushPromise = (url) => {
+    //       routePromiseArray.push(l.ajax({
+    //         url,
+    //         headers: {
+    //           'Accept': 'text/html'
+    //         }
+    //       }))
+    //     }
+    //   console.debug('Loading route ', route)
+    //   route.split('/-').forEach( route => {
+    //     const routeData = this.routes[route || '/']
+    //     if (routeData.state.url) {
+    //       pushPromise(routeData.state.url)
+    //     } else {
+    //       const promise = new Promise()
+    //       routePromiseArray.push(promise)
+    //       routeData.callback(promise)
+    //     }
+    //   })
+
+    //   Promise.all(routePromiseArray).then( dataCollection => {
+    //     // start off with a clean slate by closing all modals
+    //     // l.modal.closeAll()
+
+    //     dataCollection.forEach( ({ response }, index) => {
+    //       /* Always load the first route as the base for any modals */
+    //       if (index === 0) {
+    //         [...l.create(response)].forEach( node => {
+    //           let replacement = node.tagName
+    //           if (!~uniqueTags.indexOf(node.tagName)) {
+    //             replacement = '#' + node.id
+    //           }
+    //           l(replacement).replaceWith(node)
+    //         })              
+    //       } else {
+    //         l.modal.open(response)              
+    //       }
+    //     })
+    //   }).catch( reason => {
+    //     console.error(reason)
+    //   })
+    // }
+
+    renderState (state) {
+      if (typeof stateObj === 'string') {
+        // assume we're looking up the state in the route-table
+        state = this.routes[state].state
+      }
+      const { url, data } = state
+      console.debug('rendering state...')
+      console.debug('url - ', url)
+      console.debug('data - ', data)
+      if (state.url) {
+        l.ajax({
+          url,
+          headers: {
+            'Accept': 'text/html'
+          }
+        }).then( ({ response }) => {
+          [...l.create(response)].forEach( node => {
+            let replacement = node.tagName
+            if (!~uniqueTags.indexOf(node.tagName)) {
+              replacement = '#' + node.id
+            }
+            l(replacement).replaceWith(node)
+          }) 
+        }).catch( err => {
+          console.error(err)
+        })
+      }
+    }
+
+    newEntry (stateObj = {}, url = undefined, title = undefined) {
+      this.entry('push', )
+    }
+
+    replaceEntry (route) {
+      this.entry('replace', this.routes[route].state)
+    }
+
+    entry (method, state) {
+      history[`${method}State`](state, state.title || '', state.addressBar || '')
+      // and then pass it along...
+      this.renderState(state)
+    }
+  }
+
+  Object.assign(window, {
+    l,
+    LivityStateCreator: HistoryStateCreator
+  })
     
   // non-obtrusive prototype methods
   Object.prototype.forIn = (callback) => {
