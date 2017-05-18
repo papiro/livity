@@ -160,6 +160,13 @@ window.DEBUG = true
       return new L(Array.from(this).map(...args))
     }
 
+    each (executor) {
+      this.forEach( elem => {
+        executor(elem)
+      })
+      return this
+    }
+
     /* executes a new element selection using "this" as the root */
     find (query) {
       return this.reduce( (prev, elem) => {
@@ -326,6 +333,20 @@ window.DEBUG = true
       return this
     }
 
+    after (second) {
+      this.forEach( first => {
+        l(elem).parent().insertBefore(second, first.nextSibling)
+      })
+      return this
+    }
+
+    before (first) {
+      this.forEach( second => {
+        l(elem).parent().insertBefore(first, second)
+      })
+      return this
+    }
+
     prepend (elem) {
       this.insertBefore(elem, this.firstChild)
       return this
@@ -379,10 +400,12 @@ window.DEBUG = true
     next () {
       return this.nextElementSibling
     },
-    parent () {
-      return this.parentNode
-    },
     */
+    parent () {
+      if (this.length > 1) throw new Error('Can\'t get the parentNode of multiple nodes')
+      return l(this[0].parentNode)
+    }
+
     child () {
       return this.map( elem => {
         return elem.firstChild 
