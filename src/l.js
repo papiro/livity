@@ -1,5 +1,7 @@
 'use strict'
 
+window.DEBUG = true
+
 ;(() => {
 
   /**
@@ -801,7 +803,5 @@
     } 
   }
   // override
-  console.debug = (...args) => {
-    if (window.DEBUG) console.log(...args)
-  }
+  console.debug = ( debug => debug ? console.log.bind(window, 'DEBUG:::') : noop )(window.DEBUG)
 })()
