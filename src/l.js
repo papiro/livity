@@ -124,7 +124,6 @@ window.DEBUG = true
     constructor (query, root = document) {
       super()
       let queryMethod = '', match
-      console.debug('query:::', query)
       // special types
       // simply wrap if already an array
       if (query instanceof Array) {
@@ -152,7 +151,6 @@ window.DEBUG = true
       }
       match = match || root[queryMethod](query)
       const collection = match ? ( match.length || match instanceof HTMLCollection ) ? Array.from(match) : [match] : []
-      console.debug('returned::: ', collection)
       Object.assign(this, collection)
     }
 
