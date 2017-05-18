@@ -811,6 +811,45 @@ window.DEBUG = true
   **      - in-built ease of implementing advanced features such as auto-save and "undo" on forms
   **/
   class HistoryStateCreator {
+    /**
+      Constructor helpers
+    **/
+    constructor_extendStateObj (routes) {
+      Object.keys(routes).forEach( route => {
+        const state = routes[route].state
+
+        // if an "addressBar" property hasn't been set, assume the route name to be it
+        if (!state.addressBar) {
+          routes[route].state.addressBar = route          
+        }
+        // if a "static" property hasn't been set, assume a static page lives at route + .html
+        if (!state.static) {
+          routes[route].state.static = route + '.html'
+        }      
+      })
+    }
+    constructor_setupApplicationLinks (rendering = 'client') {
+      switch (rendering) {
+        case 'server':
+          l('a').each( elem => {
+            const $elem = l(elem), route = $elem.attr('href')
+            $elem.attr('href', this.routes[route].static)
+          })
+          break
+        case 'client':
+        default:
+          l('a').each( anchor => {
+            const 
+              $anchor = l(anchor), 
+              $children = $(anchor).children().detach(),
+              $button = l.create(`<button data-route=${$anchor.attr('href')}>`).append($children)
+            ;
+            $anchor.after($button).remove()
+          })
+          break
+      }
+    }
+    /**********************/
     constructor ({ rendering = 'client', restore = false, routes = {} }) {
       // Assign instance properties
       Object.assign(this, {
@@ -828,6 +867,9 @@ window.DEBUG = true
         }),
         routes
       })
+
+      this.constructor_extendStateObj(routes)
+      this.constructor_setupApplicationLinks(rendering)
 
       window.onpopstate = ({ state }) => {
         console.debug('Popping state ', state)
@@ -851,7 +893,7 @@ window.DEBUG = true
       }
 
       // intercept clicks on links
-      l(document).on('click', 'a', (evt, elem) => {
+      l(document).on('click', 'button[data-route]', (evt, elem) => {
         evt.preventDefault()
         const route = l(elem).attr('href')
         // instead of letting the browser make a page request, handle it with javascript & view injection
@@ -866,6 +908,15 @@ window.DEBUG = true
           window.location = route + '.html'
         }
       })
+    }
+
+    findState (criterion = {}) {
+      // search by "addressBar" value
+      if (criterion.hasOwnProperty('addressBar')) {
+        return this.routes[Object.keys(this.routes).find( item => {
+          this.routes[item].state.addressBar === criterion.addressBar
+        })].state
+      }
     }
 
     // loadRoute ({ route }) {
@@ -936,11 +987,16 @@ window.DEBUG = true
               replacement = '#' + node.id
             }
             l(replacement).replaceWith(node)
-          }) 
+          })
+          this.bootstrapRenderedState()
         }).catch( err => {
           console.error(err)
         })
       }
+    }
+
+    bootstrapRenderedState () {
+
     }
 
     newEntry (stateObj = {}, url = undefined, title = undefined) {
