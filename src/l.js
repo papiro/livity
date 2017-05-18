@@ -1027,6 +1027,14 @@ window.DEBUG = true
       }
     } 
   }
+  Array.prototype.find = predicate => {
+    let ret
+    this.some( item => {
+      ret = item
+      return predicate(item)
+    })
+    return ret
+  }
   // override
   console.debug = ( debug => debug ? console.log.bind(window, 'DEBUG:::') : noop )(window.DEBUG)
 })()
