@@ -39,12 +39,6 @@ window.DEBUG = true
           }
         })
       }
-      // !_evtData.has(elem) && _evtData.set(elem, { 
-      //   [type]: {
-      //     _wrappedHandlers: [],
-      //     handlers: []
-      //   }
-      // })
 
       const obj = _evtData.get(elem)[type]
       // store the listener data
