@@ -707,7 +707,7 @@ window.DEBUG = true
       * - {elem} may be either the name of an element, such as "span", or it may be a more complex
       *   string of markup, such as "<span id='span1' class='sideways-baseball-cap'></span>"
     **/
-    create (elem) {
+    create (elem, returnWrapped) {
       let newElement
       elem = l.trim(elem)
       if (elem[0] === '<') {
@@ -717,7 +717,7 @@ window.DEBUG = true
       } else {
         newElement = document.createElement(elem)
       }
-      return newElement
+      return returnWrapped ? l(newElement) : newElement
     },
 
     /** @ the wrapper for the web-app
