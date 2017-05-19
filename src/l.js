@@ -908,8 +908,8 @@ window.DEBUG = true
           l('a').each( anchor => {
             const 
               $anchor = l(anchor), 
-              $children = $(anchor).children().detach(),
-              $button = l.create(`<button data-route=${$anchor.attr('href')}>`).append($children)
+              $children = $anchor.children().detach(),
+              $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
             ;
             $anchor.insertAfter($button).remove()
           })
@@ -933,7 +933,8 @@ window.DEBUG = true
           }
         }),
         routes,
-        actions
+        actions,
+        rendering
       })
 
       this.constructor_extendStateObj(routes)
@@ -1065,6 +1066,7 @@ window.DEBUG = true
 
     bootstrapRenderedState (state) {
       const route = this.routes[state.route]
+      this.constructor_setupApplicationLinks(this.rendering)
       route.body && route.body()
     }
 
