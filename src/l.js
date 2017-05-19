@@ -595,7 +595,8 @@ window.DEBUG = true
     }
 
     getListeners () {
-      return this.map( elem => Listener.getListeners(elem))
+      if (this.length > 1) throw new Error('Cannot getListeners of more than one element at a time')
+      return Listener.getListeners(this[0])
     }
   }
 
