@@ -804,6 +804,11 @@ window.DEBUG = true
   **      - on-demand restoration of state from a previous session using localStorage
   **      - ability to navigate state using browser back/forward buttons
   **      - in-built ease of implementing advanced features such as auto-save and "undo" on forms
+  **
+  **    Types of routes:
+  **      1. state
+  **      2. action
+  **      3. state + action
   **/
   class HistoryStateCreator {
     /**
@@ -813,14 +818,16 @@ window.DEBUG = true
       Object.keys(routes).forEach( route => {
         const state = routes[route].state
 
+        Object.assign(state, {
+        // straight-away tack the route name into the state for convenience
+          route,
+        }, !state.addressBar && {
         // if an "addressBar" property hasn't been set, assume the route name to be it
-        if (!state.addressBar) {
-          routes[route].state.addressBar = route          
-        }
+          addressBar: route
+        }, !state.static && {
         // if a "static" property hasn't been set, assume a static page lives at route + .html
-        if (!state.static) {
-          routes[route].state.static = route + '.html'
-        }      
+          static: route + ( route[route.length-1] === '/' ? 'index.html' : '.html' )
+        })
       })
     }
     constructor_setupApplicationLinks (rendering = 'client') {
@@ -839,13 +846,13 @@ window.DEBUG = true
               $children = $(anchor).children().detach(),
               $button = l.create(`<button data-route=${$anchor.attr('href')}>`).append($children)
             ;
-            $anchor.after($button).remove()
+            $anchor.insertAfter($button).remove()
           })
           break
       }
     }
     /**********************/
-    constructor ({ rendering = 'client', restore = false, routes = {} }) {
+    constructor ({ rendering = 'client', restore = false, routes = {}, actions = {} }) {
       // Assign instance properties
       Object.assign(this, {
         // Reset app to first tick
@@ -860,7 +867,8 @@ window.DEBUG = true
             localStorage.setItem(`store${this.tick}`, val)
           }
         }),
-        routes
+        routes,
+        actions
       })
 
       this.constructor_extendStateObj(routes)
@@ -983,15 +991,16 @@ window.DEBUG = true
             }
             l(replacement).replaceWith(node)
           })
-          this.bootstrapRenderedState()
+          this.bootstrapRenderedState(state)
         }).catch( err => {
           console.error(err)
         })
       }
     }
 
-    bootstrapRenderedState () {
-
+    bootstrapRenderedState (state) {
+      const route = this.routes[state.route]
+      route.body && route.body()
     }
 
     newEntry (stateObj = {}, url = undefined, title = undefined) {
