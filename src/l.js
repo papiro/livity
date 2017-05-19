@@ -328,7 +328,7 @@ window.DEBUG = true
       return this
     }
 
-    after (second) {
+    insertAfter (second) {
       this.forEach( first => {
         l(elem).parent().insertBefore(second, first.nextSibling)
       })
