@@ -447,6 +447,29 @@ window.DEBUG = true
         return elem.firstChild 
       })
     }
+
+    children () {
+      if (this.length > 1) throw new Error('Can only get children of a single parent node.')
+      return l([...this[0].children])
+    }
+
+    detach () {
+      if (this.length > 1) throw new Error('Can\'t detach more than one element at a time.')
+
+      const listeners = this.getListeners()
+
+      if (listeners) {
+        this.off()
+        Object.assign(this, {
+          data: {
+            detached: true,
+            listeners
+          }
+        })
+      }
+
+      return this.remove()
+    }
     /*
     previous () {
       return this.previousElementSibling
