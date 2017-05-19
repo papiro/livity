@@ -104,6 +104,7 @@ window.DEBUG = true
           break
         case 'object':
           filter = 'elem'
+          return _evtData.get(c)
           break
         case 'function':
           filter = 'handler'
