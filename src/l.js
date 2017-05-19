@@ -939,12 +939,14 @@ window.DEBUG = true
 
       window.onpopstate = ({ state }) => {
         console.debug('Popping state ', state)
-        this.loadRoute(state)
+        this.renderState(state)
       }
 
       if (history.state === null) { // When loading the page for the first time
         console.debug('history.state is null, so replacing entry')
-        this.replaceEntry(window.location.pathname)
+        this.replaceState(this.findState({
+          addressBar: window.location.pathname
+        }))
       } else {
         console.debug('history.state already exists so using it to load route')
         this.renderState(history.state)
@@ -961,18 +963,13 @@ window.DEBUG = true
       // intercept clicks on links
       l(document).on('click', 'button[data-route]', (evt, elem) => {
         evt.preventDefault()
-        const route = l(elem).attr('href')
+        const route = l(elem).attr('data-route')
+
         // instead of letting the browser make a page request, handle it with javascript & view injection
-        if (rendering === 'client') {
-          console.debug('intercepting link click and loading route ', route)
-          // ignore clicks on links which take us to the same route
-          if (route === history.state.route) return
-          this.createState(route)
-        } 
-        // ...or serve an html page
-        else {
-          window.location = route + '.html'
-        }
+        console.debug('intercepting link click and loading route ', route)
+        // ignore clicks on links which take us to the same route
+        if (route === history.state.route) return
+        this.loadRoute(route)
       })
     }
 
@@ -980,56 +977,10 @@ window.DEBUG = true
       // search by "addressBar" value
       if (criterion.hasOwnProperty('addressBar')) {
         return this.routes[Object.keys(this.routes).find( item => {
-          this.routes[item].state.addressBar === criterion.addressBar
+          return this.routes[item].state.addressBar === criterion.addressBar
         })].state
       }
     }
-
-    // loadRoute ({ route }) {
-    //   const 
-    //     routePromiseArray = [],
-    //     pushPromise = (url) => {
-    //       routePromiseArray.push(l.ajax({
-    //         url,
-    //         headers: {
-    //           'Accept': 'text/html'
-    //         }
-    //       }))
-    //     }
-    //   console.debug('Loading route ', route)
-    //   route.split('/-').forEach( route => {
-    //     const routeData = this.routes[route || '/']
-    //     if (routeData.state.url) {
-    //       pushPromise(routeData.state.url)
-    //     } else {
-    //       const promise = new Promise()
-    //       routePromiseArray.push(promise)
-    //       routeData.callback(promise)
-    //     }
-    //   })
-
-    //   Promise.all(routePromiseArray).then( dataCollection => {
-    //     // start off with a clean slate by closing all modals
-    //     // l.modal.closeAll()
-
-    //     dataCollection.forEach( ({ response }, index) => {
-    //       /* Always load the first route as the base for any modals */
-    //       if (index === 0) {
-    //         [...l.create(response)].forEach( node => {
-    //           let replacement = node.tagName
-    //           if (!~uniqueTags.indexOf(node.tagName)) {
-    //             replacement = '#' + node.id
-    //           }
-    //           l(replacement).replaceWith(node)
-    //         })              
-    //       } else {
-    //         l.modal.open(response)              
-    //       }
-    //     })
-    //   }).catch( reason => {
-    //     console.error(reason)
-    //   })
-    // }
 
     renderState (state) {
       if (typeof stateObj === 'string') {
@@ -1047,7 +998,11 @@ window.DEBUG = true
             'Accept': 'text/html'
           }
         }).then( ({ response }) => {
-          [...l.create(response)].forEach( node => {
+          let dom = l.create(response)
+          if (dom instanceof Node) {
+            dom = [dom]
+          }
+          Array.prototype.slice.call(dom).forEach( node => {
             let replacement = node.tagName
             if (!~uniqueTags.indexOf(node.tagName)) {
               replacement = '#' + node.id
@@ -1067,15 +1022,19 @@ window.DEBUG = true
       route.body && route.body()
     }
 
-    newEntry (stateObj = {}, url = undefined, title = undefined) {
-      this.entry('push', )
+    loadRoute (route) {
+      this.pushState(this.routes[route].state)
     }
 
-    replaceEntry (route) {
-      this.entry('replace', this.routes[route].state)
+    pushState (state = {}) {
+      this.historyStateController('push', state)
     }
 
-    entry (method, state) {
+    replaceState (state = {}) {
+      this.historyStateController('replace', state)
+    }
+
+    historyStateController (method, state) {
       history[`${method}State`](state, state.title || '', state.addressBar || '')
       // and then pass it along...
       this.renderState(state)
@@ -1095,7 +1054,7 @@ window.DEBUG = true
       }
     } 
   }
-  Array.prototype.find = predicate => {
+  Array.prototype.find = function (predicate) {
     let ret
     this.some( item => {
       ret = item
