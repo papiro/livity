@@ -367,8 +367,11 @@ window.DEBUG = true
     }
 
     insertAfter (second) {
+      // insertAfter actually "insertsBefore" the next sibling
       this.forEach( first => {
-        l(elem).parent().insertBefore(second, first.nextSibling)
+        [...second].reverse().forEach( second => {
+          l(first).parent()[0].insertBefore(second, first.nextSibling)          
+        })
       })
       return this
     }
