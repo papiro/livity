@@ -357,9 +357,11 @@ window.DEBUG = true
       return this[show ? 'show' : 'hide']()
     }
 
-    append (child) {
+    append (children) {
       this.forEach( elem => {
-        elem.appendChild(child)
+        [...children].forEach( child => {
+          elem.appendChild(child)
+        })
       })
       return this
     }
