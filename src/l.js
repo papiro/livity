@@ -531,7 +531,7 @@ window.DEBUG = true
     }
 
     getListeners () {
-      return Listener.getListeners()
+      return this.map( elem => Listener.getListeners(elem))
     }
   }
 
