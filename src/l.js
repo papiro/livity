@@ -62,27 +62,53 @@ window.DEBUG = true
 
     // Note: Does not consider delegated targets when deregistering
     deregister () {
+      /***
+        * Accept:
+        *   1. elem
+        *   2. elem & type
+        *   3. elem, type, & handler
+      ***/
       const { elem, type, handler } = this
-
       let data = _evtData.get(elem)
-      let dataForType = data[type]
-      const handlerIndex = dataForType.handlers.indexOf(handler)
-      const _wrappedHandler = dataForType._wrappedHandlers.splice(handlerIndex, 1)[0]
+      if (!data) return false
 
-      elem.removeEventListener(type, _wrappedHandler)
+      if (type) {
+        const typeData = data[type]
+        if (handler) {
+          const handlerIndex = typeData.handlers.indexOf(handler)
+          // just return in the case someone is trying to deregister a handler which isn't registered
+          if (!~handlerIndex) return false
+          
+          const _wrappedHandler = typeData._wrappedHandlers.splice(handlerIndex, 1)[0]
+          // cleanup
+          typeData.handlers.splice(handlerIndex, 1)[0]
 
-      // clean up
-      dataForType.handlers.splice(handlerIndex, 1)[0]
-      if (!dataForType.handlers.length) {
-        data[type] = null
-        delete data[type]
-        if (!Object.keys(data).length) {
-          data = null
-          _evtData.delete(elem)
+          // do it!
+          elem.removeEventListener(type, _wrappedHandler)
+          numberOfListeners--
+        } else {
+          typeData._wrappedHandlers.forEach( handler => {
+            // do it!
+            elem.removeEventListener(type, handler)            
+            numberOfListeners--
+          })
+          // cleanup
+          data[type] = null
+          delete data[type]
         }
+      } else {
+        Object.keys(data).forEach( type => {
+          const typeData = data[type]
+          typeData._wrappedHandlers.forEach( handler => {
+            // do it!
+            elem.removeEventListener(type, handler)            
+            numberOfListeners--
+          })
+        })
+        // cleanup
+        data = null
+        _evtData.delete(elem)
       }
-
-      numberOfListeners--
     }
     
     /*convenience methods*/
