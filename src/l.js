@@ -11,6 +11,16 @@ window.DEBUG = true
    *  With WeakMaps, I would need to keep a separate reference of every key (DOM node) in 
    *  order to loop through and read each listener from the WeakMap.  
    *  If a listener was registered through the framework, deregister it through the framework.  
+   *
+   *  _evtData has the following structure:
+   *  {
+   *    [node]: {
+   *      click: {
+   *        handlers: [],        <-- raw handler the user thinks they registered
+   *        wrappedHandlers: []  <-- handler which is actually registered
+   *      }
+   *    }
+   *  }
   **/
   const _evtData = new Map()
   const noop = () => {}
