@@ -122,11 +122,8 @@ window.DEBUG = true
     /*********************/
 
     static deregisterDOMNode (elem) {
-      _listeners
-        .filter( listener => listener.elem === elem )
-        .forEach( listener => {
-          listener.deregister()
-        })
+      console.log(_evtData.get(elem))
+      // l(elem).
     } 
 
     static getListeners (c) {
