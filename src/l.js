@@ -721,10 +721,15 @@ window.DEBUG = true
       * - {head} js to execute immediately
       * - {body} js to be run onDOMContentLoaded
     **/
-    init ({ head = noop, body = noop }) {
+    init ({ head , body, serverSideRendering, actions, routes }) {
       try {
+        // if (serverSideRendering) {
+        //   const route = RouterUtils.findRoute({ addressBar: window.location.pathname })
+        //   RouterUtils.exposeActions(route)
+        // }
         head()
         this.DOMContentLoaded(body)
+        new RouterCreator({ serverSideRendering, actions, routes })
       } catch (e) {
         if (~location.search.indexOf('mobile')) {
           document.write('<h1>'+e.stack+'</h1>')
@@ -753,88 +758,6 @@ window.DEBUG = true
       }
     },
 
-    /***
-      * 'history' namespace includes methods for handling view routing using 
-      *   history.[push|replace]State
-    ***/
-    history: {
-      loadRoute ({ route }) {
-        const 
-          routePromiseArray = [],
-          pushPromise = (url) => {
-            routePromiseArray.push(l.ajax({
-              url,
-              headers: {
-                'Accept': 'text/html'
-              }
-            }))
-          }
-
-        route.split('/-').forEach( route => {
-          const routeData = this.routes[route || '/']
-          if (routeData.state.url) {
-            pushPromise(routeData.state.url)
-          } else {
-            const promise = new Promise()
-            routePromiseArray.push(promise)
-            routeData.callback(promise)
-          }
-        })
-
-        Promise.all(routePromiseArray).then( dataCollection => {
-          // start off with a clean slate by closing all modals
-          // l.modal.closeAll()
-
-          dataCollection.forEach( ({ response }, index) => {
-            /* Always load the first route as the base for any modals */
-            if (index === 0) {
-              [...l.create(response)].forEach( node => {
-                let replacement = node.tagName
-                if (!~uniqueTags.indexOf(node.tagName)) {
-                  replacement = '#' + node.id
-                }
-                l(replacement).replaceWith(node)
-              })              
-            } else {
-              l.modal.open(response)              
-            }
-          })
-        }).catch( reason => {
-          console.error(reason)
-        })
-      },
-
-      parseRoute (url = window.location.href) {
-        const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
-        return {
-          route,
-          query: l.deserialize(query)
-        }
-      },
-
-      bindHyperlinks (viewInjection) {
-               
-      },      
-
-      createState (route) {
-        this.modifyState(route, 'push')
-      },
-
-      replaceState (route) {
-        this.modifyState(route, 'replace')
-      },
-      
-      modifyState (route, method) {
-        // just use the topmost layer of the route if modals are involved
-        const { state, title } = this.routes[route.split('modal').pop()]
-
-        // Tack the route into the state object for super convenience
-        history[`${method}State`](Object.assign(state, { route }), title || '', route)
-        // and then pass it along...
-        this.loadRoute(state)  
-      }        
-    },
-
     /** @ serializes an object for inclusion as url parameters **/
     params (obj) {
       return Object.keys(obj).reduce( (prev, curr, i, arr) => {
@@ -853,7 +776,191 @@ window.DEBUG = true
     }
   })
 
+  class RouterUtils {
+    static findRoute (criterion = {}) {
+      // search by "addressBar" value
+      if (criterion.hasOwnProperty('addressBar')) {
+        return this.routes[Object.keys(this.routes).find( item => {
+          return this.routes[item].state.addressBar === criterion.addressBar
+        })]
+      }
+      return false
+    }
 
+    static findState (criterion = {}) {
+      // search by "addressBar" value
+      return this.findRoute(criterion).state
+    }
+
+    
+    static parseRoute (url = window.location.href) {
+      const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
+      return {
+        route,
+        query: l.deserialize(query)
+      }
+    }
+  }
+
+  /***
+  **  LivityStore is a wrapper for the browsers's localStorage api,
+  **    providing object-like syntax for getting and setting to it.
+  ***/
+  class LivityStore extends Proxy {
+    constructor (name = '') {
+      // setup Proxy interface for localStorage
+      super({}, {
+        get (target, prop) {
+          return target[prop]
+        },
+        set (target, prop, val) {
+          target[prop] = val
+          localStorage.setItem(name, target)
+        }
+      })
+    }
+  }
+
+  /***
+  **  LivityFramework provides the basis for 
+  **    - DOM-based declarative event binding
+  **    - exposure to the LivityStore
+  **    - route head/body hooks
+  **    - serving html pages
+  ***/
+  class LivityFramework {
+    constructor (config) {
+      const {
+        routes = {},
+        actions = {},
+        storeName = 'livity'
+      } = config
+
+      // Assign instance properties
+      Object.assign(this, {
+        store: new LivityStore(storeName),
+        routes,
+        actions
+      })
+
+      this.setupApplicationLinks()
+      this.exposeActions(window.location.pathname)
+    }
+
+    setupApplicationLinks () {
+      l('a').each( elem => {
+        const $elem = l(elem), route = $elem.attr('href')
+        $elem.attr('href', this.routes[route].static)
+      })
+    }
+
+    exposeActions (route) {
+      l.actions = Object.assign({}, actions, this.routes[route].actions)
+    }
+  }
+  /***
+  **  RouterCreator is an interface for 
+  **    simple client-side view management based on address-bar routing
+  **      - turning all <a>'s into <button>'s for semantic meaning
+  **      - hijacking all application link (<button>) clicks
+  **      - using history.[push|replace]State
+  **      - loading of views based on address-bar
+  ***/
+  class RouterCreator extends LivityFramework {
+    constructor (config) {
+      super(config)
+
+      this.bindLinking()
+    }
+
+    // override super.setupApplicationLinks
+    setupApplicationLinks () {
+      l('a').each( anchor => {
+        const 
+          $anchor = l(anchor), 
+          $children = $anchor.children().detach(),
+          $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
+        ;
+        $anchor.insertAfter($button).remove()
+      })
+    }
+
+    bindLinking () {
+      // intercept clicks on "links"
+      l(document).on('click', 'button[data-route]', (evt, elem) => {
+        evt.preventDefault()
+        const route = l(elem).attr('data-route')
+
+        // instead of letting the browser make a page request, handle it with javascript & view injection
+        console.debug('intercepting link click and loading route ', route)
+        // ignore clicks on links which take us to the same route
+        if (route === window.location.pathname) {
+          console.debug('did nothing; already at route ', route)
+          return
+        }
+        this.loadRoute(route)
+      })      
+    }
+
+
+    loadRoute (route) {
+      if (typeof stateObj === 'string') {
+        // assume we're looking up the state in the route-table
+        state = this.routes[state].state
+      }
+      const { url, data } = state
+      console.debug('rendering state...')
+      console.debug('url - ', url)
+      console.debug('data - ', data)
+      if (state.url) {
+        l.ajax({
+          url,
+          headers: {
+            'Accept': 'text/html'
+          }
+        }).then( ({ response }) => {
+          let dom = l.create(response)
+          if (dom instanceof Node) {
+            dom = [dom]
+          }
+          Array.prototype.slice.call(dom).forEach( node => {
+            let replacement = node.tagName
+            if (!~uniqueTags.indexOf(node.tagName)) {
+              replacement = '#' + node.id
+            }
+            l(replacement).replaceWith(node)
+          })
+          this.bootstrapRenderedRoute(state)
+        }).catch( err => {
+          console.error(err)
+        })
+      }
+    }
+
+    bootstrapRenderedRoute (state) {
+      const route = this.routes[state.route]
+      this.constructor_setupApplicationLinks(this.rendering)
+      route.body && route.body()
+    }
+
+    loadRoute (route) {
+      this.pushState(this.routes[route].state)
+    }
+
+    pushState (state = {}) {
+      this.historyStateController('push', state)
+    }
+
+    replaceState (state = {}) {
+      this.historyStateController('replace', state)
+    }
+
+    historyStateController (method, state) {
+      history[`${method}State`](state, state.title || '', state.addressBar || '')
+      // and then pass it along...
+      this.renderState(state)
+    }
+  }
   /**
   **  The HistoryStateCreator is an interface for 
   **    Application-state routing
@@ -872,11 +979,60 @@ window.DEBUG = true
   **      2. action
   **      3. state + action
   **/
-  class HistoryStateCreator {
-    /**
-      Constructor helpers
-    **/
-    constructor_extendStateObj (routes) {
+  class HistoryStateCreator extends RouterCreator {
+    
+    constructor (config) {
+      super(Object.assign(config, { storeName: 'livityStates' }))
+      // Assign instance properties
+      Object.assign(this, {
+        // Reset app to first tick
+        tick: 1
+      })
+
+      
+      this.extendStateObj(routes)
+
+      window.onpopstate = ({ state }) => {
+        console.debug('Popping state ', state)
+        this.renderState(state)
+      }
+
+      if (history.state === null) { // When loading the page for the first time
+        console.debug('history.state is null, so replacing entry')
+        this.replaceState(RouterUtils.findState({
+          addressBar: window.location.pathname
+        }))
+      } else {
+        console.debug('history.state already exists so using it to load route')
+        this.renderState(history.state)
+      }
+
+      if (restore) {
+        // push all the states from localStorage
+        console.debug('restoring application state from localStorage')
+      } else {
+        console.debug('clearing localStorage...')
+        localStorage.clear()
+      }
+    }
+    // override of super.bindLinking
+    bindLinking () {
+      // intercept clicks on "links"
+      l(document).on('click', 'button[data-route]', (evt, elem) => {
+        evt.preventDefault()
+        const route = l(elem).attr('data-route')
+
+        // instead of letting the browser make a page request, handle it with javascript & view injection
+        console.debug('intercepting link click and loading route ', route)
+        // ignore clicks on links which take us to the same route
+        if (route === history.state.route) {
+          console.debug('did nothing; already at route ', route)
+          return
+        }
+        this.loadRoute(route)
+      })      
+    }
+    extendStateObj (routes) {
       Object.keys(routes).forEach( route => {
         const state = routes[route].state
 
@@ -892,98 +1048,8 @@ window.DEBUG = true
         })
       })
     }
-    constructor_setupApplicationLinks (rendering = 'client') {
-      switch (rendering) {
-        case 'server':
-          l('a').each( elem => {
-            const $elem = l(elem), route = $elem.attr('href')
-            $elem.attr('href', this.routes[route].static)
-          })
-          break
-        case 'client':
-        default:
-          l('a').each( anchor => {
-            const 
-              $anchor = l(anchor), 
-              $children = $anchor.children().detach(),
-              $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
-            ;
-            $anchor.insertAfter($button).remove()
-          })
-          break
-      }
-    }
-    /**********************/
-    constructor ({ rendering = 'client', restore = false, routes = {}, actions = {} }) {
-      // Assign instance properties
-      Object.assign(this, {
-        // Reset app to first tick
-        tick: 1,
-        // setup Proxy interface for localStorage
-        store: new Proxy({}, {
-          get (target, prop) {
-            return target[prop]
-          },
-          set (target, prop, val) {
-            target[prop] = val
-            localStorage.setItem(`store${this.tick}`, val)
-          }
-        }),
-        routes,
-        actions,
-        rendering
-      })
-
-      this.constructor_extendStateObj(routes)
-      this.constructor_setupApplicationLinks(rendering)
-
-      window.onpopstate = ({ state }) => {
-        console.debug('Popping state ', state)
-        this.renderState(state)
-      }
-
-      if (history.state === null) { // When loading the page for the first time
-        console.debug('history.state is null, so replacing entry')
-        this.replaceState(this.findState({
-          addressBar: window.location.pathname
-        }))
-      } else {
-        console.debug('history.state already exists so using it to load route')
-        this.renderState(history.state)
-      }
-
-      if (restore) {
-        // push all the states from localStorage
-        console.debug('restoring application state from localStorage')
-      } else {
-        console.debug('clearing localStorage...')
-        localStorage.clear()
-      }
-
-      // intercept clicks on links
-      l(document).on('click', 'button[data-route]', (evt, elem) => {
-        evt.preventDefault()
-        const route = l(elem).attr('data-route')
-
-        // instead of letting the browser make a page request, handle it with javascript & view injection
-        console.debug('intercepting link click and loading route ', route)
-        // ignore clicks on links which take us to the same route
-        if (route === history.state.route) return
-        this.loadRoute(route)
-      })
-    }
-
-    findState (criterion = {}) {
-      // search by "addressBar" value
-      if (criterion.hasOwnProperty('addressBar')) {
-        return this.routes[Object.keys(this.routes).find( item => {
-          return this.routes[item].state.addressBar === criterion.addressBar
-        })].state
-      }
-    }
-
     renderState (state) {
-      if (typeof stateObj === 'string') {
+      if (typeof state === 'string') {
         // assume we're looking up the state in the route-table
         state = this.routes[state].state
       }
@@ -1016,34 +1082,39 @@ window.DEBUG = true
       }
     }
 
-    bootstrapRenderedState (state) {
-      const route = this.routes[state.route]
-      this.constructor_setupApplicationLinks(this.rendering)
-      route.body && route.body()
-    }
-
-    loadRoute (route) {
-      this.pushState(this.routes[route].state)
-    }
-
-    pushState (state = {}) {
-      this.historyStateController('push', state)
-    }
-
-    replaceState (state = {}) {
-      this.historyStateController('replace', state)
-    }
-
-    historyStateController (method, state) {
-      history[`${method}State`](state, state.title || '', state.addressBar || '')
-      // and then pass it along...
-      this.renderState(state)
-    }
+    
   }
 
   Object.assign(window, {
-    l,
-    LivityStateCreator: HistoryStateCreator
+    l
+  })
+
+  Object.assign(window.l, {
+    config (config = {}) {
+      const defaults = {
+        useStateCreator: true,
+        autoSaveForms: true,
+        restoreOnInit: false,
+        serverSideRendering: false,
+        actions: {},
+        routes: {},
+        head: noop,
+        body: noop,
+        init: true
+      }
+
+      config = Object.assign({}, defaults, config)
+
+      // implicit init
+      if (config.init) {
+        l.init(config)        
+      }
+      
+      if (config.useStateCreator) {
+        new LivityStateCreator(config)
+      }
+      return l // for chaining an explicit "init"
+    }
   })
     
   // non-obtrusive prototype methods
