@@ -781,6 +781,8 @@ window.DEBUG = true
       })
     }
   }
+
+  // A LivityRoute is a state-route, or ui-route - not a url-route
   class LivityRoute {
     constructor (name = '', data = {}) {
       const defaults = {
@@ -803,12 +805,14 @@ window.DEBUG = true
       this.render()
     }
 
-    render (state) {
-      const = state
-      console.debug('rendering state...')
-      console.debug('url - ', url)
-      console.debug('data - ', data)
-      if (state.url) {
+    render () {
+      l(document).trigger('livity.route-prerender', this)
+
+      console.debug('rendering route...')
+      console.debug('name - ', this.name)
+      console.debug('addressBar - ', this.addressBar)
+
+      if (this.template) {
         l.ajax({
           url,
           headers: {
@@ -826,17 +830,13 @@ window.DEBUG = true
             }
             l(replacement).replaceWith(node)
           })
-          this.bootstrapRenderedRoute(state)
         }).catch( err => {
           console.error(err)
         })
+      } else {
+        console.debug('no template to render')
       }
-    }
-
-    bootstrapRenderedRoute (state) {
-      const route = this.routes[state.route]
-      this.constructor_setupApplicationLinks(this.rendering)
-      route.body && route.body()
+      l(document).trigger('livity.route-postrender', this)
     }
   }
   /**
@@ -922,7 +922,23 @@ window.DEBUG = true
       super(states, LivityState)
     }
   }
-
+  /**
+  **  The HistoryStateCreator is an interface for 
+  **    Application-state routing
+  **      - using history.[push|replace]State
+  **      - loading of views and setting of state based on URL pathname, query,
+  **        fragment, and state objects stored and pulled from window.localStorage.
+  **      - generation of URL to give to someone in order to recreate a specific
+  **        application state.
+  **      - on-demand restoration of state from a previous session using localStorage
+  **      - ability to navigate state using browser back/forward buttons
+  **      - in-built ease of implementing advanced features such as auto-save and "undo" on forms
+  **
+  **    Types of routes:
+  **      1. state
+  **      2. action
+  **      3. state + action
+  **/
   class LivityFramework {
     constructor (config) {
       const defaults = {
@@ -939,42 +955,31 @@ window.DEBUG = true
 
       config = Object.assign(defaults, config)
 
-      config.states = this.StubAndAbstractStates(config)
-
       // Assign instance properties
       Object.assign(this, {
         recoverable,
         rendering,
         store: new LivityStore(config.storeName),
-        routes: new LivityRouteTable(config.routes),
-        states: new LivityStateTable(config.states),
+        routes: new LivityRouteMap(config.routes),
+        states: new LivityStateMap(this.stubAndAbstractStates(config)),
         actions,
         head,
         body
       })
 
-      this.setupApplicationLinks[`${config.rendering}SideRendering`]()
+      if (this.isClientRendering) this.interceptApplicationLinks()
+
+      this.setupHooks()
+
+      window.onpopstate = ({ state }) => {
+        console.debug('popstate triggered - rendering route ', state.name)
+        this.routes[state.name].render()
+      }
 
       this.init()
-
-      this.exposeActions(window.location.pathname)
-
-    /** @ the wrapper for the web-app
-      * - {head} js to execute immediately
-      * - {body} js to be run onDOMContentLoaded
-    **/
-      // try {
-      //   this.initParentJs(head, body)
-      // } catch (e) {
-      //   if (~location.search.indexOf('mobile')) {
-      //     document.write('<h1>'+e.stack+'</h1>')
-      //   } else {
-      //     console.error(e)
-      //   }
-      // }
     }
 
-    StubAndAbstractStates (config) {
+    stubAndAbstractStates (config) {
       /**
       **  abstract states out into their own map-object and extend them with selected route properties
       **/
@@ -997,49 +1002,68 @@ window.DEBUG = true
 
       return stubbedStatesMap
     }
-    
-    set state (state) {
-      state.promote()
-      Object.assign(this, { state })
-    }
 
-    setupApplicationLinks: {
-      clientSideRendering () {
-        l(document).on('livity.view-rendered', () => {
-          // change <a>'s to <button>'s for semantic correctness
-          l('a').each( elem => {
-            const 
-              $anchor = l(anchor), 
-              $children = $anchor.children().detach(),
-              $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
-            ;
-            $anchor.insertAfter($button).remove()
+    setupHooks () {
+      l(document).on('livity.view-prerender', (route) => {
+        // global head
+        this.head && this.head()
 
-            // intercept clicks on "links" (<button>'s)
-            l(document).on('click', 'button[data-route]', (evt, elem) => {
-              evt.preventDefault()
-              const route = l(elem).attr('data-route')
+        // route head
+        route.head && route.head()
 
-              // instead of letting the browser make a page request, handle it with javascript & view injection
-              console.debug('intercepting link click and loading route ', route)
-              // ignore clicks on links which take us to the same route
-              if (route === window.location.pathname) {
-                console.debug('did nothing; already at route ', route)
-                return
-              }
-              this.loadRoute(route)
+        // extend route actions onto global actions
+        l.actions = Object.assign({}, this.actions, route.actions)
+      })
+
+      l(document).on('livity.view-postrender', (route) => {
+        switch (this.rendering) {
+
+          case 'client':
+            // change <a>'s to <button>'s for semantic correctness
+            l('a').each( elem => {
+              const 
+                $anchor = l(anchor), 
+                $children = $anchor.children().detach(),
+                $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
+              ;
+              $anchor.insertAfter($button).remove()
             })
-          })        
-        })
-      },
-      serverSideRendering () {
-        l(document).on('livity.view-rendered', () => {
-          l('a').each( elem => {
-            const $elem = l(elem), route = $elem.attr('href')
-            $elem.attr('href', this.routes[route].static)          
-          })        
-        })
-      }
+          break
+
+          case 'server':
+            l(document).on('livity.view-rendered', () => {
+              l('a').each( elem => {
+                const $elem = l(elem), route = $elem.attr('href')
+                $elem.attr('href', this.routes[route].static)          
+              })        
+            })
+          break
+
+        }
+      })
+
+      // global body
+      this.body && this.body()
+
+      // route body
+      route.body && route.body()
+    }
+    
+    interceptApplicationLinks () {
+      // intercept clicks on "links" (<button>'s)
+      l(document).on('click', 'button[data-route]', (evt, elem) => {
+        evt.preventDefault()
+        const route = l(elem).attr('data-route')
+
+        // instead of letting the browser make a page request, handle it with javascript & view injection
+        console.debug('intercepting link click and loading route ', route)
+        // ignore clicks on links which take us to the same route
+        if (route === window.location.pathname) {
+          console.debug('did nothing; already at route ', route)
+          return
+        }
+        this.loadRoute(route)
+      })      
     }
     /** 
     **  init is a central component of LivityFramework.  It takes care of the following:
@@ -1050,10 +1074,13 @@ window.DEBUG = true
     **/
     init () {
       if (this.recoverable) {
-        this.recoverState()
-      } else
+        return this.recoverState()
+      } else {
+        console.debug('clearing localStorage...')
+        localStorage.clear()
+      }
 
-      if (window.history.state === null) {
+      if (!this.hasState) { // When loading the page for the first time
         console.debug('history.state is null, so replacing entry')
         const route = this.routes.findByAddressBar(window.location.pathname)
         route.load(true, this.states[route.name])
@@ -1063,13 +1090,10 @@ window.DEBUG = true
         this.routes[routeName].render(this.states[routeName])
       }
     }
+
     recoverState (app) {
-
-    }
-
-    initParentJs (head, body) {
-      head()
-      this.DOMContentLoaded(body)
+      // push all the states from localStorage
+      console.debug('restoring application state from localStorage')
     }
     
     set rendering (mode) {
@@ -1084,44 +1108,11 @@ window.DEBUG = true
       return this.rendering === 'server'
     }
 
-    exposeActions (route) {
-      l.actions = Object.assign({}, actions, this.routes[route].actions)
-    }
-
     static get hasState () {
       return window.history.state !== null
     }
   }
   
-  class RouterCreator extends LivityFramework {
-    constructor (config) {
-      super(config)
-
-      this.bindLinking()
-    }
-
-    bindLinking () {
-      
-    }    
-  }
-  /**
-  **  The HistoryStateCreator is an interface for 
-  **    Application-state routing
-  **      - using history.[push|replace]State
-  **      - hijacking all application link (<a>) clicks
-  **      - loading of views and setting of state based on URL pathname, query,
-  **        fragment, and state objects stored and pulled from window.localStorage.
-  **      - generation of URL to give to someone in order to recreate a specific
-  **        application state.
-  **      - on-demand restoration of state from a previous session using localStorage
-  **      - ability to navigate state using browser back/forward buttons
-  **      - in-built ease of implementing advanced features such as auto-save and "undo" on forms
-  **
-  **    Types of routes:
-  **      1. state
-  **      2. action
-  **      3. state + action
-  **/
   class HistoryStateCreator extends RouterCreator {
     
     constructor (config) {
@@ -1131,32 +1122,6 @@ window.DEBUG = true
         // Reset app to first tick
         tick: 1
       })
-
-      
-      this.extendStateObj(routes)
-
-      window.onpopstate = ({ state }) => {
-        console.debug('Popping state ', state)
-        this.renderState(state)
-      }
-
-      if (history.state === null) { // When loading the page for the first time
-        console.debug('history.state is null, so replacing entry')
-        this.replaceState(RouterUtils.findState({
-          addressBar: window.location.pathname
-        }))
-      } else {
-        console.debug('history.state already exists so using it to load route')
-        this.renderState(history.state)
-      }
-
-      if (restore) {
-        // push all the states from localStorage
-        console.debug('restoring application state from localStorage')
-      } else {
-        console.debug('clearing localStorage...')
-        localStorage.clear()
-      }
     }
   }
 
