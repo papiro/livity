@@ -767,10 +767,10 @@ window.DEBUG = true
   **  LivityStore is a wrapper for the browsers's localStorage api,
   **    providing object-like syntax for getting and setting to it.
   ***/
-  class LivityStore extends Proxy {
+  class LivityStore {
     constructor (name = 'livity') {
       // setup Proxy interface for localStorage
-      super({}, {
+      Object.assign(this, new Proxy({}, {
         get (target, prop) {
           return target[prop]
         },
@@ -778,7 +778,7 @@ window.DEBUG = true
           target[prop] = val
           localStorage.setItem(name, target)
         }
-      })
+      }))
     }
   }
 
@@ -801,7 +801,7 @@ window.DEBUG = true
     }
     
     load (replace, state) {
-      state(replace ? 'replace' : 'push')()
+      state[replace ? 'replace' : 'push']()
       this.render()
     }
 
@@ -814,7 +814,7 @@ window.DEBUG = true
 
       if (this.template) {
         l.ajax({
-          url,
+          url: this.template,
           headers: {
             'Accept': 'text/html'
           }
@@ -923,7 +923,7 @@ window.DEBUG = true
     }
   }
   /**
-  **  The HistoryStateCreator is an interface for 
+  **  LivityFramework is an interface for 
   **    Application-state routing
   **      - using history.[push|replace]State
   **      - loading of views and setting of state based on URL pathname, query,
@@ -941,27 +941,25 @@ window.DEBUG = true
   **/
   class LivityFramework {
     constructor (config) {
-      const defaults = {
+      const {
         // autoSaveForms: true,
-        recoverable: false,
-        rendering: 'client',
-        actions: {},
-        routes: {},
-        states: {},
-        head: noop,
-        body: noop,
+        recoverable = false,
+        rendering = 'client',
+        actions = {},
+        routes = {},
+        states = {},
+        head = noop,
+        body = noop,
         storeName
-      }
-
-      config = Object.assign(defaults, config)
+      } = config
 
       // Assign instance properties
       Object.assign(this, {
         recoverable,
         rendering,
-        store: new LivityStore(config.storeName),
-        routes: new LivityRouteMap(config.routes),
-        states: new LivityStateMap(this.stubAndAbstractStates(config)),
+        store: new LivityStore(storeName),
+        routes: new LivityRouteMap(routes),
+        states: new LivityStateMap(this.stubAndAbstractStates(routes)),
         actions,
         head,
         body
@@ -973,21 +971,21 @@ window.DEBUG = true
 
       window.onpopstate = ({ state }) => {
         console.debug('popstate triggered - rendering route ', state.name)
-        this.routes[state.name].render()
+        routes[state.name].render()
       }
 
       this.init()
     }
 
-    stubAndAbstractStates (config) {
+    stubAndAbstractStates (routes) {
       /**
       **  abstract states out into their own map-object and extend them with selected route properties
       **/
       const stubbedStatesMap = {}
 
-      Object.keys(config.routes).forEach( route => {
+      Object.keys(routes).forEach( route => {
         const 
-          routeData = config.routes[route],
+          routeData = routes[route],
         {
           name,
           template,
@@ -1040,13 +1038,13 @@ window.DEBUG = true
           break
 
         }
+
+        // global body
+        this.body && this.body()
+
+        // route body
+        route.body && route.body()
       })
-
-      // global body
-      this.body && this.body()
-
-      // route body
-      route.body && route.body()
     }
     
     interceptApplicationLinks () {
@@ -1076,7 +1074,7 @@ window.DEBUG = true
       if (this.recoverable) {
         return this.recoverState()
       } else {
-        console.debug('clearing localStorage...')
+        console.debug('skipping app recovery - clearing localStorage...')
         localStorage.clear()
       }
 
@@ -1097,7 +1095,11 @@ window.DEBUG = true
     }
     
     set rendering (mode) {
-      this.rendering = mode.toLowerCase()
+      this._rendering = mode.toLowerCase()
+    }
+
+    get rendering () {
+      return this._rendering
     }
 
     get isClientRendering () {
@@ -1113,20 +1115,9 @@ window.DEBUG = true
     }
   }
   
-  class HistoryStateCreator extends RouterCreator {
-    
-    constructor (config) {
-      super(Object.assign(config, { storeName: 'livityStates' }))
-      // Assign instance properties
-      Object.assign(this, {
-        // Reset app to first tick
-        tick: 1
-      })
-    }
-  }
-
   Object.assign(window, {
-    l
+    l,
+    Livity: LivityFramework
   })
     
   // non-obtrusive prototype methods
