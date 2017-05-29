@@ -717,28 +717,6 @@ window.DEBUG = true
       return returnWrapped ? l(newElement) : newElement
     },
 
-    /** @ the wrapper for the web-app
-      * - {head} js to execute immediately
-      * - {body} js to be run onDOMContentLoaded
-    **/
-    init ({ head , body, serverSideRendering, actions, routes }) {
-      try {
-        // if (serverSideRendering) {
-        //   const route = RouterUtils.findRoute({ addressBar: window.location.pathname })
-        //   RouterUtils.exposeActions(route)
-        // }
-        head()
-        this.DOMContentLoaded(body)
-        new RouterCreator({ serverSideRendering, actions, routes })
-      } catch (e) {
-        if (~location.search.indexOf('mobile')) {
-          document.write('<h1>'+e.stack+'</h1>')
-        } else {
-          console.error(e)
-        }
-      }
-    },
-
     modal: {
       count: 0,
       open (content) {
@@ -776,23 +754,7 @@ window.DEBUG = true
     }
   })
 
-  class RouterUtils {
-    static findRoute (criterion = {}) {
-      // search by "addressBar" value
-      if (criterion.hasOwnProperty('addressBar')) {
-        return this.routes[Object.keys(this.routes).find( item => {
-          return this.routes[item].state.addressBar === criterion.addressBar
-        })]
-      }
-      return false
-    }
-
-    static findState (criterion = {}) {
-      // search by "addressBar" value
-      return this.findRoute(criterion).state
-    }
-
-    
+  class UrlUtils {
     static parseRoute (url = window.location.href) {
       const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
       return {
@@ -801,13 +763,12 @@ window.DEBUG = true
       }
     }
   }
-
   /***
   **  LivityStore is a wrapper for the browsers's localStorage api,
   **    providing object-like syntax for getting and setting to it.
   ***/
   class LivityStore extends Proxy {
-    constructor (name = '') {
+    constructor (name = 'livity') {
       // setup Proxy interface for localStorage
       super({}, {
         get (target, prop) {
@@ -820,95 +781,30 @@ window.DEBUG = true
       })
     }
   }
-
-  /***
-  **  LivityFramework provides the basis for 
-  **    - DOM-based declarative event binding
-  **    - exposure to the LivityStore
-  **    - route head/body hooks
-  **    - serving html pages
-  ***/
-  class LivityFramework {
-    constructor (config) {
-      const {
-        routes = {},
-        actions = {},
-        storeName = 'livity'
-      } = config
-
-      // Assign instance properties
-      Object.assign(this, {
-        store: new LivityStore(storeName),
-        routes,
-        actions
-      })
-
-      this.setupApplicationLinks()
-      this.exposeActions(window.location.pathname)
-    }
-
-    setupApplicationLinks () {
-      l('a').each( elem => {
-        const $elem = l(elem), route = $elem.attr('href')
-        $elem.attr('href', this.routes[route].static)
-      })
-    }
-
-    exposeActions (route) {
-      l.actions = Object.assign({}, actions, this.routes[route].actions)
-    }
-  }
-  /***
-  **  RouterCreator is an interface for 
-  **    simple client-side view management based on address-bar routing
-  **      - turning all <a>'s into <button>'s for semantic meaning
-  **      - hijacking all application link (<button>) clicks
-  **      - using history.[push|replace]State
-  **      - loading of views based on address-bar
-  ***/
-  class RouterCreator extends LivityFramework {
-    constructor (config) {
-      super(config)
-
-      this.bindLinking()
-    }
-
-    // override super.setupApplicationLinks
-    setupApplicationLinks () {
-      l('a').each( anchor => {
-        const 
-          $anchor = l(anchor), 
-          $children = $anchor.children().detach(),
-          $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
-        ;
-        $anchor.insertAfter($button).remove()
-      })
-    }
-
-    bindLinking () {
-      // intercept clicks on "links"
-      l(document).on('click', 'button[data-route]', (evt, elem) => {
-        evt.preventDefault()
-        const route = l(elem).attr('data-route')
-
-        // instead of letting the browser make a page request, handle it with javascript & view injection
-        console.debug('intercepting link click and loading route ', route)
-        // ignore clicks on links which take us to the same route
-        if (route === window.location.pathname) {
-          console.debug('did nothing; already at route ', route)
-          return
-        }
-        this.loadRoute(route)
-      })      
-    }
-
-
-    loadRoute (route) {
-      if (typeof stateObj === 'string') {
-        // assume we're looking up the state in the route-table
-        state = this.routes[state].state
+  class LivityRoute {
+    constructor (name = '', data = {}) {
+      const defaults = {
+        name,
+        // if a "static" property hasn't been set, assume a static page lives at route + .html
+        static: name + ( name[name.length-1] === '/' ? 'index.html' : '.html' ),
+        template: name + '.bns',
+        addressBar: name,
+        dom: {},
+        actions: {},
+        head: noop,
+        body: noop
       }
-      const { url, data } = state
+
+      Object.assign(this, defaults, data)
+    }
+    
+    load (replace, state) {
+      state(replace ? 'replace' : 'push')()
+      this.render()
+    }
+
+    render (state) {
+      const = state
       console.debug('rendering state...')
       console.debug('url - ', url)
       console.debug('data - ', data)
@@ -942,24 +838,271 @@ window.DEBUG = true
       this.constructor_setupApplicationLinks(this.rendering)
       route.body && route.body()
     }
-
-    loadRoute (route) {
-      this.pushState(this.routes[route].state)
+  }
+  /**
+  **  A Route + <state> contains the following:
+  **  {
+  **    name: <str>,              // name of route
+  **    static: <str>,            // url of static html page to load for route
+  **    template: <arr> OR <str>, // url of template to load for route
+  **    addressBar: <str>,        // what to display in the address-bar (to the user) for this route
+  **    dom: <obj>,               // key/value pairs of selectors and event handlers for this route
+  **    actions: <obj>,           // functions to expose via l.actions to inline event handlers
+  **    head: <fn>,               // function to run before any templates have loaded, or before 'DOMContentLoaded' of a static page
+  **    body: <fn>,               // function to run after any templates have loaded, or on 'DOMContentLoaded' of a static page
+  **    state: {
+  **      /**  IMPLICIT  **//*
+  **      name: [copied from route],
+  **      template: [copied from route],
+  **      addressBar: [copied from route],
+  **      /****************//*
+  **      application data properties...
+  **      ...
+  **      ..
+  **      .
+  **    }
+  **  }
+  **/
+  class LivityState {
+    constructor (state) {
+      const defaults = {
+        name: '',
+        template: '',
+        addressBar: ''
+      }
+      // create or extend the state object with defaults
+      Object.assign(this, defaults, state)
     }
 
-    pushState (state = {}) {
-      this.historyStateController('push', state)
+    push () {
+      this.modifyState('push')
     }
 
-    replaceState (state = {}) {
-      this.historyStateController('replace', state)
+    replace () {
+      this.modifyState('replace')
     }
 
-    historyStateController (method, state) {
-      history[`${method}State`](state, state.title || '', state.addressBar || '')
-      // and then pass it along...
-      this.renderState(state)
+    modifyState (method) {
+      history[`${method}State`](this, this.title || this.name, this.addressBar)
     }
+  }
+
+  class LivityMap {
+    constructor (collection, klass) {
+      // transform map into living map of instances
+      Object.keys(collection).forEach( item => {
+        collection[item] = new klass(item, collection[item])
+      })
+      Object.assign(this, collection)
+    }
+
+    find (criterion = {}) {
+      // search by "addressBar" value
+      if (criterion.hasOwnProperty('addressBar')) {
+        return this[Object.keys(this).find( item => {
+          return this[item].addressBar === criterion.addressBar
+        })]
+      }
+      return false
+    }
+
+    findByAddressBar (str = '') {
+      return this.find({ addressBar: str })
+    }
+  }
+
+  class LivityRouteMap extends LivityMap {
+    constructor (routes) {
+      super(routes, LivityRoute)
+    }
+  }
+
+  class LivityStateMap extends LivityMap {
+    constructor (states) {
+      super(states, LivityState)
+    }
+  }
+
+  class LivityFramework {
+    constructor (config) {
+      const defaults = {
+        // autoSaveForms: true,
+        recoverable: false,
+        rendering: 'client',
+        actions: {},
+        routes: {},
+        states: {},
+        head: noop,
+        body: noop,
+        storeName
+      }
+
+      config = Object.assign(defaults, config)
+
+      config.states = this.StubAndAbstractStates(config)
+
+      // Assign instance properties
+      Object.assign(this, {
+        recoverable,
+        rendering,
+        store: new LivityStore(config.storeName),
+        routes: new LivityRouteTable(config.routes),
+        states: new LivityStateTable(config.states),
+        actions,
+        head,
+        body
+      })
+
+      this.setupApplicationLinks[`${config.rendering}SideRendering`]()
+
+      this.init()
+
+      this.exposeActions(window.location.pathname)
+
+    /** @ the wrapper for the web-app
+      * - {head} js to execute immediately
+      * - {body} js to be run onDOMContentLoaded
+    **/
+      // try {
+      //   this.initParentJs(head, body)
+      // } catch (e) {
+      //   if (~location.search.indexOf('mobile')) {
+      //     document.write('<h1>'+e.stack+'</h1>')
+      //   } else {
+      //     console.error(e)
+      //   }
+      // }
+    }
+
+    StubAndAbstractStates (config) {
+      /**
+      **  abstract states out into their own map-object and extend them with selected route properties
+      **/
+      const stubbedStatesMap = {}
+
+      Object.keys(config.routes).forEach( route => {
+        const 
+          routeData = config.routes[route],
+        {
+          name,
+          template,
+          addressBar
+        } = routeData
+
+        stubbedStatesMap[route] = Object.assign({}, { name, template, addressBar }, routeData.state)
+        // delete state from route object
+        routeData.state = null
+        delete routeData.state
+      })
+
+      return stubbedStatesMap
+    }
+    
+    set state (state) {
+      state.promote()
+      Object.assign(this, { state })
+    }
+
+    setupApplicationLinks: {
+      clientSideRendering () {
+        l(document).on('livity.view-rendered', () => {
+          // change <a>'s to <button>'s for semantic correctness
+          l('a').each( elem => {
+            const 
+              $anchor = l(anchor), 
+              $children = $anchor.children().detach(),
+              $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
+            ;
+            $anchor.insertAfter($button).remove()
+
+            // intercept clicks on "links" (<button>'s)
+            l(document).on('click', 'button[data-route]', (evt, elem) => {
+              evt.preventDefault()
+              const route = l(elem).attr('data-route')
+
+              // instead of letting the browser make a page request, handle it with javascript & view injection
+              console.debug('intercepting link click and loading route ', route)
+              // ignore clicks on links which take us to the same route
+              if (route === window.location.pathname) {
+                console.debug('did nothing; already at route ', route)
+                return
+              }
+              this.loadRoute(route)
+            })
+          })        
+        })
+      },
+      serverSideRendering () {
+        l(document).on('livity.view-rendered', () => {
+          l('a').each( elem => {
+            const $elem = l(elem), route = $elem.attr('href')
+            $elem.attr('href', this.routes[route].static)          
+          })        
+        })
+      }
+    }
+    /** 
+    **  init is a central component of LivityFramework.  It takes care of the following:
+    **  1. checks if this is a "recoverable" application
+    **  2. checks if history.state is currently null
+    **    - if so, find the state which should be set by searching the state-table by "addressBar", and set it
+    **    - if history.state is not null, lookup the state in the state-table, by the "name" property in history.state, and set it
+    **/
+    init () {
+      if (this.recoverable) {
+        this.recoverState()
+      } else
+
+      if (window.history.state === null) {
+        console.debug('history.state is null, so replacing entry')
+        const route = this.routes.findByAddressBar(window.location.pathname)
+        route.load(true, this.states[route.name])
+      } else {
+        console.debug('history.state already exists so using it to render route')
+        const routeName = history.state.name
+        this.routes[routeName].render(this.states[routeName])
+      }
+    }
+    recoverState (app) {
+
+    }
+
+    initParentJs (head, body) {
+      head()
+      this.DOMContentLoaded(body)
+    }
+    
+    set rendering (mode) {
+      this.rendering = mode.toLowerCase()
+    }
+
+    get isClientRendering () {
+      return this.rendering === 'client'
+    }
+
+    get isServerRendering () {
+      return this.rendering === 'server'
+    }
+
+    exposeActions (route) {
+      l.actions = Object.assign({}, actions, this.routes[route].actions)
+    }
+
+    static get hasState () {
+      return window.history.state !== null
+    }
+  }
+  
+  class RouterCreator extends LivityFramework {
+    constructor (config) {
+      super(config)
+
+      this.bindLinking()
+    }
+
+    bindLinking () {
+      
+    }    
   }
   /**
   **  The HistoryStateCreator is an interface for 
@@ -1015,106 +1158,10 @@ window.DEBUG = true
         localStorage.clear()
       }
     }
-    // override of super.bindLinking
-    bindLinking () {
-      // intercept clicks on "links"
-      l(document).on('click', 'button[data-route]', (evt, elem) => {
-        evt.preventDefault()
-        const route = l(elem).attr('data-route')
-
-        // instead of letting the browser make a page request, handle it with javascript & view injection
-        console.debug('intercepting link click and loading route ', route)
-        // ignore clicks on links which take us to the same route
-        if (route === history.state.route) {
-          console.debug('did nothing; already at route ', route)
-          return
-        }
-        this.loadRoute(route)
-      })      
-    }
-    extendStateObj (routes) {
-      Object.keys(routes).forEach( route => {
-        const state = routes[route].state
-
-        Object.assign(state, {
-        // straight-away tack the route name into the state for convenience
-          route,
-        }, !state.addressBar && {
-        // if an "addressBar" property hasn't been set, assume the route name to be it
-          addressBar: route
-        }, !state.static && {
-        // if a "static" property hasn't been set, assume a static page lives at route + .html
-          static: route + ( route[route.length-1] === '/' ? 'index.html' : '.html' )
-        })
-      })
-    }
-    renderState (state) {
-      if (typeof state === 'string') {
-        // assume we're looking up the state in the route-table
-        state = this.routes[state].state
-      }
-      const { url, data } = state
-      console.debug('rendering state...')
-      console.debug('url - ', url)
-      console.debug('data - ', data)
-      if (state.url) {
-        l.ajax({
-          url,
-          headers: {
-            'Accept': 'text/html'
-          }
-        }).then( ({ response }) => {
-          let dom = l.create(response)
-          if (dom instanceof Node) {
-            dom = [dom]
-          }
-          Array.prototype.slice.call(dom).forEach( node => {
-            let replacement = node.tagName
-            if (!~uniqueTags.indexOf(node.tagName)) {
-              replacement = '#' + node.id
-            }
-            l(replacement).replaceWith(node)
-          })
-          this.bootstrapRenderedState(state)
-        }).catch( err => {
-          console.error(err)
-        })
-      }
-    }
-
-    
   }
 
   Object.assign(window, {
     l
-  })
-
-  Object.assign(window.l, {
-    config (config = {}) {
-      const defaults = {
-        useStateCreator: true,
-        autoSaveForms: true,
-        restoreOnInit: false,
-        serverSideRendering: false,
-        actions: {},
-        routes: {},
-        head: noop,
-        body: noop,
-        init: true
-      }
-
-      config = Object.assign({}, defaults, config)
-
-      // implicit init
-      if (config.init) {
-        l.init(config)        
-      }
-      
-      if (config.useStateCreator) {
-        new LivityStateCreator(config)
-      }
-      return l // for chaining an explicit "init"
-    }
   })
     
   // non-obtrusive prototype methods
