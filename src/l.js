@@ -578,7 +578,7 @@ window.DEBUG = true
       } else {
         let customEvent 
         try {
-          customEvent = new CustomEvent(eventName, detail)
+          customEvent = new CustomEvent(eventName, { detail })
         } catch (e) {
           // IE11
           customEvent = document.createEvent('CustomEvent')
@@ -677,7 +677,7 @@ window.DEBUG = true
     },
 
     /* @ creates and returns a Promise representing an HTTP response */
-    ajax ({ url = '', method = 'GET', data, headers }) {
+    ajax ({ url = '', method = 'GET', data, headers = {} }) {
       return new Promise( (resolve, reject) => {
         const req = _openAndReturnReq(method, url)
         
@@ -687,12 +687,11 @@ window.DEBUG = true
         req.onreadystatechange = () => {
           if (req.readyState === 4) {
             switch (Math.floor(req.status/100)) {
-              case 4:
-              case 5:
-                reject(req)
+              case 2:
+                resolve(req)
                 break
               default:
-                resolve(req)
+                reject(req)
             }
           }
         }
@@ -782,6 +781,32 @@ window.DEBUG = true
     }
   }
 
+  /**
+  **  A Route + <state> contains the following:
+  **  {
+  **    name: <str>,              // name of route
+  **    static: <str>,            // url of static html page to load for route
+  **    template: <arr> OR <str>, // url of template to load for route
+  **    addressBar: <str>,        // what to display in the address-bar (to the user) for this route
+  **    dom: <obj>,               // key/value pairs of selectors and event handlers for this route
+  **    actions: <obj>,           // functions to expose via l.actions to inline event handlers
+  **    head: <fn>,               // function to run before any templates have loaded, or before 'DOMContentLoaded' of a static page
+  **    body: <fn>,               // function to run after any templates have loaded, or on 'DOMContentLoaded' of a static page
+
+  **    state: {
+  **      /**  IMPLICIT  **//*
+  **      name: [copied from route],
+  **      template: [copied from route],
+  **      addressBar: [copied from route],
+  **      /****************//*
+  **      application data properties...
+  **      ...
+  **      ..
+  **      .
+  **    }
+  **  }
+  **/
+
   // A LivityRoute is a state-route, or ui-route - not a url-route
   class LivityRoute {
     constructor (name = '', data = {}) {
@@ -789,7 +814,7 @@ window.DEBUG = true
         name,
         // if a "static" property hasn't been set, assume a static page lives at route + .html
         static: name + ( name[name.length-1] === '/' ? 'index.html' : '.html' ),
-        template: name + '.bns',
+        template: name ? ( name + '.bns' ) : '',
         addressBar: name,
         dom: {},
         actions: {},
@@ -800,7 +825,7 @@ window.DEBUG = true
       Object.assign(this, defaults, data)
     }
     
-    load (replace, state) {
+    load (state, replace) {
       state[replace ? 'replace' : 'push']()
       this.render()
     }
@@ -832,39 +857,16 @@ window.DEBUG = true
           })
         }).catch( err => {
           console.error(err)
+        }).then( () => {
+          l(document).trigger('livity.route-postrender', this)          
         })
       } else {
         console.debug('no template to render')
       }
-      l(document).trigger('livity.route-postrender', this)
     }
   }
-  /**
-  **  A Route + <state> contains the following:
-  **  {
-  **    name: <str>,              // name of route
-  **    static: <str>,            // url of static html page to load for route
-  **    template: <arr> OR <str>, // url of template to load for route
-  **    addressBar: <str>,        // what to display in the address-bar (to the user) for this route
-  **    dom: <obj>,               // key/value pairs of selectors and event handlers for this route
-  **    actions: <obj>,           // functions to expose via l.actions to inline event handlers
-  **    head: <fn>,               // function to run before any templates have loaded, or before 'DOMContentLoaded' of a static page
-  **    body: <fn>,               // function to run after any templates have loaded, or on 'DOMContentLoaded' of a static page
-  **    state: {
-  **      /**  IMPLICIT  **//*
-  **      name: [copied from route],
-  **      template: [copied from route],
-  **      addressBar: [copied from route],
-  **      /****************//*
-  **      application data properties...
-  **      ...
-  **      ..
-  **      .
-  **    }
-  **  }
-  **/
   class LivityState {
-    constructor (state) {
+    constructor (name = '', state = {}) {
       const defaults = {
         name: '',
         template: '',
@@ -1002,7 +1004,9 @@ window.DEBUG = true
     }
 
     setupHooks () {
-      l(document).on('livity.view-prerender', (route) => {
+      console.debug('setting up prerender and postrender hooks')
+      l(document).on('livity.route-prerender', ({ detail: route }) => {
+        console.debug('prerender hooks firing')
         // global head
         this.head && this.head()
 
@@ -1013,14 +1017,15 @@ window.DEBUG = true
         l.actions = Object.assign({}, this.actions, route.actions)
       })
 
-      l(document).on('livity.view-postrender', (route) => {
+      l(document).on('livity.route-postrender', ({ detail: route }) => {
+        console.debug('postrender hooks firing')
         switch (this.rendering) {
 
           case 'client':
             // change <a>'s to <button>'s for semantic correctness
             l('a').each( elem => {
               const 
-                $anchor = l(anchor), 
+                $anchor = l(elem), 
                 $children = $anchor.children().detach(),
                 $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
               ;
@@ -1056,11 +1061,11 @@ window.DEBUG = true
         // instead of letting the browser make a page request, handle it with javascript & view injection
         console.debug('intercepting link click and loading route ', route)
         // ignore clicks on links which take us to the same route
-        if (route === window.location.pathname) {
+        if (route === history.state.name) {
           console.debug('did nothing; already at route ', route)
           return
         }
-        this.loadRoute(route)
+        this.routes[route].load(this.states[route])
       })      
     }
     /** 
@@ -1081,7 +1086,7 @@ window.DEBUG = true
       if (!this.hasState) { // When loading the page for the first time
         console.debug('history.state is null, so replacing entry')
         const route = this.routes.findByAddressBar(window.location.pathname)
-        route.load(true, this.states[route.name])
+        route.load(this.states[route.name], true)
       } else {
         console.debug('history.state already exists so using it to render route')
         const routeName = history.state.name
@@ -1110,7 +1115,7 @@ window.DEBUG = true
       return this.rendering === 'server'
     }
 
-    static get hasState () {
+    get hasState () {
       return window.history.state !== null
     }
   }
