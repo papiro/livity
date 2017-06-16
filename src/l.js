@@ -434,6 +434,7 @@ window.DEBUG = true
       return this.nextElementSibling
     },
     */
+
     parent () {
       if (this.length > 1) throw new Error('Can\'t get the parentNode of multiple nodes')
       return l(this[0].parentNode)
@@ -753,15 +754,6 @@ window.DEBUG = true
     }
   })
 
-  class UrlUtils {
-    static parseRoute (url = window.location.href) {
-      const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
-      return {
-        route,
-        query: l.deserialize(query)
-      }
-    }
-  }
   /***
   **  LivityStore is a wrapper for the browsers's localStorage api,
   **    providing object-like syntax for getting and setting to it.
@@ -781,6 +773,15 @@ window.DEBUG = true
     }
   }
 
+  class UrlUtils {
+    static parseRoute (url = window.location.href) {
+      const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
+      return {
+        route,
+        query: l.deserialize(query)
+      }
+    }
+  }
   /**
   **  A Route + <state> contains the following:
   **  {
@@ -845,10 +846,10 @@ window.DEBUG = true
           }
         }).then( ({ response }) => {
           let dom = l.create(response)
-          if (dom instanceof Node) {
-            dom = [dom]
-          }
-          Array.prototype.slice.call(dom).forEach( node => {
+          // if (dom instanceof Node) {
+          //   dom = [dom]
+          // }
+          Array.prototype.slice.call(Array.from(dom)).forEach( node => {
             let replacement = node.tagName
             if (!~uniqueTags.indexOf(node.tagName)) {
               replacement = '#' + node.id
