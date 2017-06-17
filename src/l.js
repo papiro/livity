@@ -608,8 +608,7 @@ window.DEBUG = true
       const req = new XMLHttpRequest()
       req.open(method, url)
       return req
-    },
-    uniqueTags = ['TITLE', 'HEADER', 'MAIN', 'FOOTER']
+    }
   ;
 
   /** STATICS **/
@@ -846,13 +845,12 @@ window.DEBUG = true
           }
         }).then( ({ response }) => {
           let dom = l.create(response)
-          // if (dom instanceof Node) {
-          //   dom = [dom]
-          // }
           Array.prototype.slice.call(Array.from(dom)).forEach( node => {
-            let replacement = node.tagName
-            if (!~uniqueTags.indexOf(node.tagName)) {
-              replacement = '#' + node.id
+            let replacement = ''
+            if (node.id) {
+              replacement = '#' + node.id              
+            } else {
+              replacement = node.tagName
             }
             l(replacement).replaceWith(node)
           })
