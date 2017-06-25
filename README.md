@@ -50,9 +50,11 @@ Nothing special needs to be done to include Livity in your project.  Once includ
 * `getListeners`: return listener data for a single elem
 
 These methods are available on Livity-wrapped elements themselves.  Here's an example:
+```
     l('#myDiv').on('click', (evt, elem) => {
       l(elem).find('#childElem').hide()      
     })
+```
 
 Everything was built from scratch, mostly without looking at pre-existing implementations, so there may be bugs.  That being said, everything was tested during development and many of the methods are being used in apps currently under development.
 
@@ -61,19 +63,23 @@ The following "static" methods are available on the `window.l` namespace:
 * `each`: `for each` with a `hasOwnProperty` check built in
 * `DOMContentLoaded`: `l.DOMContentLoaded(callback)`
 * `router`: a manager for page routing based on `location.hash`; based on the target, will ajax an html file of the same name into the DOM; takes a config object as a single argument.  
+```
     config: {
       view: "selector for the container where views are to be rendered",
       templateDirectory: "the root directory containing HTML markup files"
     }
+```
 Publishes event "view.{target}" where {target} is #/{target} or #{target}
 Note: `router` is not used in LivityFramework and may be removed in the short-term future.
 * `ajax`: creates and returns a Promise representing an HTTP response.  Takes an object as a single argument with the following properties and default values:
+```
     {
       url: '',
       method: 'GET',
       data,
       headers: {}
     } 
+```
 * `create`: creates a new DOM node or collection of DOM nodes.  First argument is string representing DOM nodes.  Either a simple tag name or more complext HTML markup.  If passed `true` as second argument, will return the newly created DOM nodes as a livity-wrapped collection.
 * `modal.open`: will open a livity-modal with the passed in html content.  Note: under development; supports multiple modals opened at once
 * `modal.closeAll`: remove all open modals
@@ -81,7 +87,7 @@ Note: `router` is not used in LivityFramework and may be removed in the short-te
 * `deserialize`: deserializes a query string into an object
 
 LivityFramework is under active development, yet it is useful in its current form.  In your app's js file, you would do:
-
+```
     new Livity({
       head () {}, // logic you want to run before the DOM is ready
       body () {}, // logic you want to run when the DOM is ready
@@ -95,6 +101,7 @@ LivityFramework is under active development, yet it is useful in its current for
         }
       }
     })
+```
 
 LivityFramework uses history.(push|replace)State under the hood to achieve its routing.  Because of this, different routes with different keys may resolve to the same location in the adress bar.  By default, the address bar will take on the URL of the route key.  To set a custom URL-value, you may set an `addressBar` property in a route object.  The `template` is the path to the markup you'd like to load.  Routes have a `head` and `body` for executing pre/post DOM-ready logic, as well.  The `state` node of a route config object is for any data you'd like to store as a part of that route.  When a user cycles through the browser history using the back/forward buttons, the `state` object will be "popped" off and become available to the application natively through `window.history.state`.  
 
