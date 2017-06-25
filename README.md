@@ -56,9 +56,9 @@ These methods are available on Livity-wrapped elements themselves.  Here's an ex
     })
 ```
 
-Everything was built from scratch, mostly without looking at pre-existing implementations, so there may be bugs.  That being said, everything was tested during development and many of the methods are being used in apps currently under development.
+Everything was built from scratch, mostly without looking at pre-existing implementations, so there may be defects.  That being said, everything was tested during development and many of the methods are being used in apps currently under development.
 
-The following "static" methods are available on the `window.l` namespace:
+### The following "static" methods are available on the `window.l` namespace:
 * `getListeners`: returns all listener data if passed no arguments, returns listener data for an element if passed a raw DOM Node reference
 * `each`: `for each` with a `hasOwnProperty` check built in
 * `DOMContentLoaded`: `l.DOMContentLoaded(callback)`
