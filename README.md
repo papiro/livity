@@ -46,7 +46,7 @@ Nothing special needs to be done to include Livity in your project.  Once includ
 * `once`: same as `on` but will bind and run only once and then run `removeEventListener`
 * `off`: takes the event type and the handler function to unbind
 * `deregisterEvents`: removes all event listeners on all elements in the collection
-* `trigger`: `l('#foo').trigger('click'); l('#foo').trigger('customEvent', { data: 'bar' })
+* `trigger`: `l('#foo').trigger('click'); l('#foo').trigger('customEvent', { data: 'bar' })`
 * `getListeners`: return listener data for a single elem
 
 These methods are available on Livity-wrapped elements themselves.  Here's an example:
