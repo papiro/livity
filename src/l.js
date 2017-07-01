@@ -131,14 +131,12 @@ window.DEBUG = true
       switch (typeof c) {
         case 'undefined':
           return [..._evtData]
-          break
         case 'string':
           filter = 'type'
           break
         case 'object':
           filter = 'elem'
           return _evtData.get(c)
-          break
         case 'function':
           filter = 'handler'
           break
@@ -152,13 +150,14 @@ window.DEBUG = true
     constructor (query, root = document) {
       super()
       let queryMethod = '', match
-      // special types
-      // simply wrap if already an array
-      if (query instanceof Array) {
-        return Object.assign(this, query)
-      } else if (query instanceof Node || query instanceof Window) {
-        match = query 
-      } else if (typeof query !== 'string') {
+      /** 
+      **  SPECIAL TYPES
+      **/
+      if (query instanceof L) return query
+      // Simply wrap if already an array
+      if (query instanceof Array) return Object.assign(this, query)
+      if (query instanceof Node || query instanceof Window) match = query 
+      else if (typeof query !== 'string') {
         throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
       } else if ((/(\w[ \.#])|(^\[)/).test(query)) {
         queryMethod = 'querySelectorAll'
@@ -746,6 +745,14 @@ window.DEBUG = true
         obj[key] = decodeURIComponent(val)
       })
       return obj
+    },
+
+    /** @ parses a form into an object of field name/value pairs **/
+    parseForm (form) {
+      return l(form).find('input').reduce( (prev, next) => {
+        prev[next.name] = next.value
+        return prev
+      }, {})
     }
   })
 
