@@ -627,10 +627,6 @@ window.DEBUG = true
       }
     },
 
-    trim (str) {
-      return str.replace(/(^\s*)|(\s*$)/g, '')
-    },
-
     /* $.ready substitute */
     DOMContentLoaded (_callback) {
       if (document.readyState !== 'loading') return _callback()
@@ -705,7 +701,7 @@ window.DEBUG = true
     **/
     create (elem, returnWrapped) {
       let newElement
-      elem = l.trim(elem)
+      elem = elem.trim()
       if (elem[0] === '<') {
         const temp = document.createElement('div')
         temp.innerHTML = elem
