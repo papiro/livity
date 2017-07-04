@@ -570,6 +570,11 @@ window.DEBUG = true
       , 'mouseleave'
       , 'mouseout'
       , 'select'
+      , 'submit'
+      , 'change'
+      , 'keyup'
+      , 'keydown'
+      , 'keypress'
       ]
       if (~nativeEvents.indexOf(eventName)) {
         this.forEach( elem => {
@@ -690,7 +695,7 @@ window.DEBUG = true
             }
           }
         }
-        req.send(data)
+        req.send(typeof data === 'object' ? JSON.stringify(data) : data)
       })
     },
 
@@ -749,7 +754,7 @@ window.DEBUG = true
 
     /** @ parses a form into an object of field name/value pairs **/
     parseForm (form) {
-      return l(form).find('input').reduce( (prev, next) => {
+      return l(form).find('input, select').reduce( (prev, next) => {
         prev[next.name] = next.value
         return prev
       }, {})
@@ -947,6 +952,7 @@ window.DEBUG = true
     constructor (config) {
       const {
         // autoSaveForms: true,
+        frameworkFormSubmit = true,
         recoverable = false,
         rendering = 'client',
         actions = {},
@@ -959,6 +965,7 @@ window.DEBUG = true
 
       // Assign instance properties
       Object.assign(this, {
+        frameworkFormSubmit,
         recoverable,
         rendering,
         store: new LivityStore(storeName),
@@ -1046,11 +1053,26 @@ window.DEBUG = true
 
         }
 
-        // global body
+        // Global body
         this.body && this.body()
 
-        // route body
-        route.body && route.body()
+        // Build parameters
+        const form = new Promise( (resolve, reject) => {
+          if (!this.frameworkFormSubmit) return resolve()
+
+          l('form').on('submit', function (evt) {
+            evt.preventDefault()
+            const { method, action } = this
+            l.ajax({
+              url: action,
+              method,
+              data: l.parseForm(this)
+            }).then(resolve).catch(reject)
+          })
+        })
+
+        // Route body
+        route.body && route.body({ form })
       })
     }
     
