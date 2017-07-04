@@ -159,7 +159,7 @@ window.DEBUG = true
       if (query instanceof Node || query instanceof Window) match = query 
       else if (typeof query !== 'string') {
         throw new TypeError(`L needs a string but was passed ${query}, which is a ${typeof query}`)
-      } else if ((/(\w[ \.#])|(^\[)/).test(query)) {
+      } else if ((/(\w[ \.#,])|(^\[)/).test(query)) {
         queryMethod = 'querySelectorAll'
       } else {
         switch (query[0]) {
