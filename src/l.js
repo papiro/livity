@@ -177,7 +177,7 @@ window.DEBUG = true
         }
       }
       match = match || root[queryMethod](query)
-      const collection = match ? ( match.length || match instanceof HTMLCollection ) ? Array.from(match) : [match] : []
+      const collection = match ? ( Array.isArray(match) || match instanceof HTMLCollection || match instanceof NodeList ) ? Array.from(match) : [match] : []
       Object.assign(this, collection)
     }
 
