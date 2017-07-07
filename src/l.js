@@ -201,6 +201,19 @@ window.DEBUG = true
       }, [])
     }
 
+    closest (query) {
+      if (this.length > 1) throw new Error('Method "closest" currently doesn\'t support finding an ancestor of more than one element at a time')
+      
+      const targets = Array.from(document.querySelectorAll(query))
+      let currentElem = this[0].parentElement
+
+      while (!~targets.indexOf(currentElem) && currentElem !== window) {
+        currentElem = currentElem.parentElement
+      }
+
+      return l(currentElem)
+    }
+
     /* get/set attribute */
     attr (name, value) {
       if (!name) {
