@@ -965,7 +965,6 @@ window.DEBUG = true
     constructor (config) {
       const {
         // autoSaveForms: true,
-        frameworkFormSubmit = true,
         recoverable = false,
         rendering = 'client',
         actions = {},
@@ -978,7 +977,6 @@ window.DEBUG = true
 
       // Assign instance properties
       Object.assign(this, {
-        frameworkFormSubmit,
         recoverable,
         rendering,
         store: new LivityStore(storeName),
@@ -1069,20 +1067,31 @@ window.DEBUG = true
         // Global body
         this.body && this.body()
 
-        // Build parameters
-        const form = new Promise( (resolve, reject) => {
-          if (!this.frameworkFormSubmit) return resolve()
-
-          l('form').on('submit', function (evt) {
-            evt.preventDefault()
-            const { method, action } = this
-            l.ajax({
-              url: action,
-              method,
-              data: l.parseForm(this)
-            }).then(resolve).catch(reject)
-          })
-        })
+        /** Build body() parameters
+        **  1. "form" is a helper object for simple forms.  
+        **    - Call bind() on it to set up a submit handler which will parse the form markup
+        **      to determine the appropriate action.
+        **/
+        const form = {
+          bind () {
+            return new Promise( (resolve, reject) => {
+              l('form button[type="submit"]').on('click', function (evt) {
+                evt.preventDefault()
+                const 
+                  lbutton = l(this),
+                  lform = l(this).closest('form'),
+                  formaction = lbutton.attr('formaction') || lform.attr('action'),
+                  formmethod = lbutton.attr('formmethod') || lform.attr('method')
+                ;
+                l.ajax({
+                  url: formaction,
+                  method: formmethod,
+                  data: l.parseForm(lform)
+                }).then(resolve).catch(reject)
+              })
+            })
+          }
+        }
 
         // Route body
         route.body && route.body({ form })
