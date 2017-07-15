@@ -216,6 +216,7 @@ window.DEBUG = true
 
     /* get/set attribute */
     attr (name, value) {
+      // If passed no arguments, will return all attributes
       if (!name) {
         let attrMap = {};
         for (let i=0; i<this.attributes.length; i++) {
