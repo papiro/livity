@@ -1133,6 +1133,9 @@ window.DEBUG = true
       if (!this.hasState) { // When loading the page for the first time
         console.debug('history.state is null, so replacing entry')
         const route = this.routes.findByAddressBar(window.location.pathname)
+        if (!route) {
+          throw new ReferenceError(`No route by the name of ${window.location.pathname}.`)
+        }
         route.load(this.states[route.name], true)
       } else {
         console.debug('history.state already exists so using it to render route')
@@ -1182,11 +1185,11 @@ window.DEBUG = true
   }
   Array.prototype.find = function (predicate) {
     let ret
-    this.some( item => {
+    const foundMatch = this.some( item => {
       ret = item
       return predicate(item)
     })
-    return ret
+    return foundMatch && ret
   }
   // override
   console.debug = ( debug => debug ? console.log.bind(window, 'DEBUG:::') : noop )(window.DEBUG)
