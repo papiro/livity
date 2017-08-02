@@ -709,7 +709,7 @@ window.DEBUG = true
             }
           }
         }
-        req.send(typeof data === 'object' ? JSON.stringify(data) : data)
+        req.send(typeof data === 'object' && !(data instanceof FormData) ? JSON.stringify(data) : data)
       })
     },
 
