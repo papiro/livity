@@ -843,8 +843,8 @@ window.DEBUG = true
         head: noop,
         body: noop
       }
-
       Object.assign(this, defaults, data)
+      console.debug(this)
     }
     
     load (state, replace) {
@@ -1070,8 +1070,8 @@ window.DEBUG = true
 
         /** Build body() parameters
         **  1. "form" is a helper object for simple forms.  
-        **    - Call bind() on it to set up a submit handler which will parse the form markup
-        **      to determine the appropriate action.
+        **    - Call bind() on it to set up a submit handler Promise which will parse the form markup
+        **      to determine the appropriate "action".
         **/
         const form = {
           bind () {
@@ -1132,7 +1132,13 @@ window.DEBUG = true
 
       if (!this.hasState) { // When loading the page for the first time
         console.debug('history.state is null, so replacing entry')
-        const route = this.routes.findByAddressBar(window.location.pathname)
+        const 
+          { pathname } = window.location,
+          lastChar = pathname.length - 1,
+          // Strip trailing '/' if not the only character
+          routeName = lastChar && pathname[lastChar] === '/' ? pathname.slice(0, lastChar) : pathname,
+          route = this.routes.findByAddressBar(routeName)
+        ;
         if (!route) {
           throw new ReferenceError(`No route by the name of ${window.location.pathname}.`)
         }
