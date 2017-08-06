@@ -785,17 +785,26 @@ window.DEBUG = true
   **    providing object-like syntax for getting and setting to it.
   ***/
   class LivityStore {
-    constructor (name = 'livity') {
-      // setup Proxy interface for localStorage
-      Object.assign(this, new Proxy({}, {
-        get (target, prop) {
-          return target[prop]
-        },
-        set (target, prop, val) {
-          target[prop] = val
-          localStorage.setItem(name, target)
-        }
-      }))
+    constructor ({ storeName = 'livity' }) {
+      const livityStore = (obj) => {
+        Object.assign(livityStore, obj)
+      }
+
+      livityStore.__proto__ = Object.getPrototypeOf(this)
+
+      return livityStore
+    }
+
+    persist (obj) {
+      // Prefer local props over global if there's duplicates (which there should never be)
+      this.store = Object.assign({}, obj, this.store)
+      localStorage.setItem(this.name, obj)
+    }
+
+    clear () {
+      for (let i in this) {
+        console.log(i)
+      }
     }
   }
 
