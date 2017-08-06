@@ -1217,7 +1217,7 @@ window.DEBUG = true
   })
     
   // non-obtrusive prototype methods
-  Object.prototype.forIn = (callback) => {
+  Object.prototype.forIn = function (callback) {
     for (let key in this) {
       if (this.hasOwnProperty(key)) {
         callback(key, this[key], this)
