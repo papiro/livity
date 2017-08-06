@@ -707,10 +707,10 @@ window.DEBUG = true
           if (req.readyState === 4) {
             switch (Math.floor(req.status/100)) {
               case 2:
-                resolve(req)
+                resolve(JSON.parseSafe(req.response) || req.response, req)
                 break
               default:
-                reject(req)
+                reject(JSON.parseSafe(req.response) || req.response, req)
             }
           }
         }
