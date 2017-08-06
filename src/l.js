@@ -368,8 +368,13 @@ window.DEBUG = true
     }
 
     append (children) {
+      if (typeof children === 'string') children = l.create(children)
+
+      if (children.length) children = Array.from(children)
+      else children = [children]
+
       this.forEach( elem => {
-        [...children].forEach( child => {
+        children.forEach( child => {
           elem.appendChild(child)
         })
       })
