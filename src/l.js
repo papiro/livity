@@ -855,7 +855,8 @@ window.DEBUG = true
         dom: {},
         actions: {},
         head: noop,
-        body: noop
+        body: noop,
+        store: new LivityStore({ storeName: name, store: {} })
       }
       Object.assign(this, defaults, data)
       console.debug(this)
