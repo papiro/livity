@@ -868,6 +868,7 @@ window.DEBUG = true
     }
 
     render () {
+      this.store.clear()
       l(document).trigger('livity.route-prerender', this)
 
       console.debug('rendering route...')
@@ -996,7 +997,7 @@ window.DEBUG = true
       Object.assign(this, {
         recoverable,
         rendering,
-        store: new LivityStore(storeName),
+        store: new LivityStore({ storeName, store: {} }),
         routes: new LivityRouteMap(routes),
         states: new LivityStateMap(this.stubAndAbstractStates(routes)),
         actions,
@@ -1042,13 +1043,26 @@ window.DEBUG = true
 
     setupHooks () {
       console.debug('setting up prerender and postrender hooks')
+
+      // Callback provider for the prerender and postrender hooks
+      const cbProvider = { 
+        store: {
+          global: this.store
+        }
+      }
+
       l(document).on('livity.route-prerender', ({ detail: route }) => {
+        Object.assign(cbProvider.store, {
+          // Add a new store.local() storage, overriding any previous one.
+          local: route.store
+        })
+        
         console.debug('prerender hooks firing')
         // global head
-        this.head && this.head()
+        this.head && this.head(cbProvider)
 
         // route head
-        route.head && route.head()
+        route.head && route.head(cbProvider)
 
         // extend route actions onto global actions
         l.actions = Object.assign({}, this.actions, route.actions)
@@ -1081,8 +1095,13 @@ window.DEBUG = true
 
         }
 
+        Object.assign(cbProvider.store, {
+          // Add a new store.local() storage, overriding any previous one.
+          local: route.store
+        })
+
         // Global body
-        this.body && this.body()
+        this.body && this.body(cbProvider)
 
         /** Build body() parameters
         **  1. "form" is a helper object for simple forms.  
@@ -1111,7 +1130,7 @@ window.DEBUG = true
         }
 
         // Route body
-        route.body && route.body({ form })
+        route.body && route.body(Object.assign({ form }, cbProvider))
       })
     }
     
