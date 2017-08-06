@@ -1232,6 +1232,13 @@ window.DEBUG = true
     })
     return foundMatch && ret
   }
+  JSON.parseSafe = function (obj) {
+    try {
+      return JSON.parse(obj)
+    } catch (e) {
+      return false
+    }
+  }
   // override
   console.debug = ( debug => debug ? console.log.bind(window, 'DEBUG:::') : noop )(window.DEBUG)
 })()
