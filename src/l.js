@@ -880,8 +880,8 @@ window.DEBUG = true
           headers: {
             'Accept': 'text/html'
           }
-        }).then( ({ response }) => {
-          let dom = l.create(response)
+        }).then( data => {
+          let dom = l.create(data)
           Array.prototype.slice.call(Array.from(dom)).forEach( node => {
             let replacement = ''
             if (node.id) {
@@ -908,6 +908,7 @@ window.DEBUG = true
         template: '',
         addressBar: ''
       }
+
       // create or extend the state object with defaults
       Object.assign(this, defaults, state)
     }
