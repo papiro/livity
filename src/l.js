@@ -810,7 +810,7 @@ window.DEBUG = true
 
   class UrlUtils {
     static parseRoute (url = window.location.href) {
-      const [, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
+      const [/*don't need*/, route, query] = url.match(/(?:https?:\/\/[^\/]*)?([^?]*)(\?.*)?/)
       return {
         route,
         query: l.deserialize(query)
