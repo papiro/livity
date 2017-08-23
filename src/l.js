@@ -1224,6 +1224,9 @@ window.DEBUG = true
       }
     } 
   }
+  Object.prototype.getByPropDescriptor = function (str) {
+    return str.split('.').reduce((obj, key) => obj[key], this)
+  }
   Array.prototype.find = function (predicate) {
     let ret
     const foundMatch = this.some( item => {
