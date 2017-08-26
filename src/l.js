@@ -904,7 +904,14 @@ window.DEBUG = true
             } else {
               replacement = node.tagName
             }
-            l(replacement).replaceWith(node)
+            const existingNode = l(replacement)
+            if (existingNode.length) {
+              existingNode.replaceWith(node)
+            } else {
+              // If all else fails, just append the node to the body
+              l('body').append(node)
+            }
+            
           })
         }).catch( err => {
           console.error(err)
