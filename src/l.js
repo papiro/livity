@@ -1256,6 +1256,17 @@ window.DEBUG = true
     })
     return foundMatch && ret
   }
+  // This already exists natively, but has no support in IE 11
+  Array.prototype.findIndex = function (predicate) {
+    let index = -1
+    this.some( (item, i) => {
+      if (predicate(item, i)) {
+        index = i
+        return true
+      }
+    })
+    return index
+  }
   JSON.parseSafe = function (obj) {
     try {
       return JSON.parse(obj)
