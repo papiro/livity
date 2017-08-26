@@ -723,16 +723,30 @@ window.DEBUG = true
       *   string of markup, such as "<span id='span1' class='sideways-baseball-cap'></span>"
     **/
     create (elem, returnWrapped) {
-      let newElement
+      let newDOM
       elem = elem.trim()
       if (elem[0] === '<') {
         const temp = document.createElement('div')
         temp.innerHTML = elem
-        newElement = ( temp.childElementCount === 1 ? temp.firstChild : temp.children )
+        newDOM = ( temp.childElementCount === 1 ? temp.firstChild : temp.children )
       } else {
-        newElement = document.createElement(elem)
+        newDOM = document.createElement(elem)
       }
-      return returnWrapped ? l(newElement) : newElement
+      newDOM = Array.from(newDOM)
+      // <script>'s created via innerHTML won't execute when appended to the DOM.
+      const scriptIndex = newDOM.findIndex( elem => elem instanceof HTMLScriptElement )
+      if (~scriptIndex) {
+        const script = newDOM[scriptIndex]
+        const newScript = document.createElement('script')
+      
+        Array.from(script.attributes).forEach( attr => {
+          newScript.setAttribute(attr.name, attr.value)
+        })
+        newScript.innerText = script.innerText
+        // Swap old script with new document.createElement'ed one.
+        newDOM.splice(scriptIndex, 1, newScript)
+      }
+      return returnWrapped ? l(newDOM) : newDOM
     },
 
     modal: {
