@@ -752,15 +752,16 @@ window.DEBUG = true
     modal: {
       count: 0,
       open (content) {
-        l('body').append(
-          l.create(`
-            <div id="livityModal" class="modal" 
-                 style="top: ${++this.count * 5}vh; left: ${this.count * 5}vw;">
-              <span class="modal_close">X</span>
-              ${content}
-            </div>
-          `)
-        )
+        const modal = l.create(
+        `
+          <div id="livityModal" class="modal" 
+               style="top: ${++this.count * 5}vh; left: ${this.count * 5}vw;">
+            <span onclick="this.parentElement.remove();this.parentElement.onClose && this.parentElement.onClose()" class="modal_close">X</span>
+            ${content}
+          </div>
+        `)
+        l('body').append(modal)
+        return modal[0]
       },
       closeAll () {
         l('.modal').remove()
@@ -791,6 +792,12 @@ window.DEBUG = true
         prev[next.name] = next.value
         return prev
       }, {})
+    },
+
+    /** @ validates a form passed as argument and returns boolean **/
+    isValid (form) {
+      const requiredFields = l(form).find('[required]') 
+      return !requiredFields.some( field => ( field.value !== undefined ))
     }
   })
 
