@@ -177,7 +177,7 @@ window.DEBUG = true
         }
       }
       match = match || root[queryMethod](query)
-      const collection = match ? ( Array.isArray(match) || match instanceof HTMLCollection || match instanceof NodeList ) ? Array.from(match) : [match] : []
+      const collection = Array.fromDOM(match)
       Object.assign(this, collection)
     }
 
@@ -732,7 +732,7 @@ window.DEBUG = true
       } else {
         newDOM = document.createElement(elem)
       }
-      newDOM = Array.from(newDOM)
+      newDOM = Array.fromDOM(newDOM)
       // <script>'s created via innerHTML won't execute when appended to the DOM.
       const scriptIndex = newDOM.findIndex( elem => elem instanceof HTMLScriptElement )
       if (~scriptIndex) {
@@ -1248,6 +1248,12 @@ window.DEBUG = true
   Object.prototype.getByPropDescriptor = function (str) {
     return str.split('.').reduce((obj, key) => obj[key], this)
   }
+  Object.defineProperty(Object.prototype, 'getByPropDescriptor', {
+    enumerable: false 
+  })
+  Object.defineProperty(Object.prototype, 'forIn', {
+    enumerable: false 
+  })
   Array.prototype.find = function (predicate) {
     let ret
     const foundMatch = this.some( item => {
@@ -1266,6 +1272,11 @@ window.DEBUG = true
       }
     })
     return index
+  }
+  Array.fromDOM = function (dom = []) {
+    if (Array.isArray(dom)) { return dom }
+    if (dom instanceof Node) { return [dom] }
+    if (dom instanceof HTMLCollection || dom instanceof NodeList) { return Array.from(dom) }
   }
   JSON.parseSafe = function (obj) {
     try {
