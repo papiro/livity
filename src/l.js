@@ -797,7 +797,7 @@ window.DEBUG = true
     /** @ validates a form passed as argument and returns boolean **/
     isValid (form) {
       const requiredFields = l(form).find('[required]') 
-      return !requiredFields.some( field => ( field.value !== undefined ))
+      return !requiredFields.some( field => ( field.value === undefined ))
     }
   })
 
