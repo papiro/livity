@@ -248,19 +248,21 @@ window.DEBUG = true
 
     /* get applied styles / set inline styles */
     css (prop, val) {
-      if (typeof prop === 'object') {
-        util.each(prop, function (prop, val) {
-          this.style(prop, val)
-        }.bind(this))
-        return this
-      } else if (val !== undefined && val !== null) {
-        if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
-        this.style[prop] = val
-        return this
-      } else {
-        var style = window.getComputedStyle(this)
-        return prop ? style[prop] : style
-      }
+      let intermediateValue
+      this.forEach( elem => {
+        if (typeof prop === 'object') {
+          prop.forIn( (prop, val) => {
+            elem.style[prop] = val
+          })
+        } else if (val !== undefined && val !== null) {
+          if (typeof val === 'number' && !~['opacity', 'z-index'].indexOf(prop)) val += 'px'
+          elem.style[prop] = val
+        } else {
+          var style = window.getComputedStyle(elem)
+          intermediateValue = prop ? style[prop] : style
+        }
+      })
+      return intermediateValue ? intermediateValue : this
     }
 
     /* add a class */
