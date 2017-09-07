@@ -724,7 +724,7 @@ window.DEBUG = true
       * - {elem} may be either the name of an element, such as "span", or it may be a more complex
       *   string of markup, such as "<span id='span1' class='sideways-baseball-cap'></span>"
     **/
-    create (elem, returnWrapped) {
+    create (elem, returnWrapped = false) {
       let newDOM
       elem = elem.trim()
       if (elem[0] === '<') {
@@ -752,16 +752,36 @@ window.DEBUG = true
     },
 
     modal: {
+      modals: new Map(),
       count: 0,
-      open (content) {
+      open ({ html, width, height, onClose, color }) {
         const modal = l.create(
         `
-          <div id="livityModal" class="modal" 
-               style="top: ${++this.count * 5}vh; left: ${this.count * 5}vw;">
-            <span onclick="this.parentElement.remove();this.parentElement.onClose && this.parentElement.onClose()" class="modal_close">X</span>
-            ${content}
+          <div id="livityModal${this.count}" class="modal">
+            <span class="modal_close" data-rel="livityModal${this.count}"></span>
+            ${html}
           </div>
-        `)
+        `)[0]
+        const lmodal = l(modal)
+        this.modals.set(modal, { onClose })
+        const modal_close = lmodal.find('.modal_close')
+        modal_close.on('click', (...args) => {
+          const modalConfig = this.modals.get(modal) 
+          if (modalConfig.onClose) {
+            modalConfig.onClose()
+          }
+          this.modals.delete(modal)
+          modal.remove()
+        })
+        const numModals = this.modals.size
+        lmodal.css({
+          top: numModals * 5 + 'vh',
+          left: numModals * 5 + 'vw',
+        })
+        if (height) modal.style.height = height
+        if (width) modal.style.width = width
+        if (color) modal.style.color = color
+        
         l('body').append(modal)
         return modal[0]
       },
