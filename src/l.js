@@ -1127,8 +1127,9 @@ window.DEBUG = true
             l('a').each( elem => {
               const 
                 $anchor = l(elem), 
+                classes = $anchor.attr('class'),
                 $children = $anchor.children().detach(),
-                $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
+                $button = l.create(`<button data-route=${$anchor.attr('href')} class=${classes}>`, true).append($children)
               ;
               $anchor.insertAfter($button).remove()
             })
