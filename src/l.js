@@ -468,7 +468,7 @@ window.DEBUG = true
 
     children () {
       if (this.length > 1) throw new Error('Can only get children of a single parent node.')
-      return l([...this[0].children])
+      return l([...this[0].childNodes])
     }
 
     detach () {
