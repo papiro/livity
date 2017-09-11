@@ -1198,6 +1198,7 @@ window.DEBUG = true
           console.debug('did nothing; already at route ', route)
           return
         }
+        if (!this.routes[route]) throw new ReferenceError(`No route by the name of ${route} defined.`)
         this.routes[route].load(this.states[route])
       })      
     }
