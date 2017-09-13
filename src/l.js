@@ -265,24 +265,23 @@ window.DEBUG = true
       return intermediateValue ? intermediateValue : this
     }
 
-    /* add a class */
-    addClass (classes) {
-      this.forEach( elem => {
-        elem.className += ` ${classes}`
+    modClass (cnames, op) {
+      cnames.split(/\s+/).forEach( cname => {
+        this.forEach( elem => {
+          elem.classList[op](cname)
+        })
       })
-      return this    
+      return this
+    }
+
+    /* add a class */
+    addClass (cnames) {
+      return this.modClass(cnames, 'add')
     }
 
     /* remove a class */
     removeClass (cnames) {
-      const splitCnames = cnames.split(' ')
-      splitCnames.forEach( cname => {
-        const matcher = ` ${cname}|${cname} |${cname}`
-        this.forEach( elem => {
-          elem.className = elem.className.replace(new RegExp(matcher, 'g'), '')        
-        })
-      })
-      return this
+      return this.modClass(cnames, 'remove')
     }
 
     /* get classes */
