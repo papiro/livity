@@ -1035,10 +1035,10 @@ window.DEBUG = true
         recoverable = false,
         rendering = 'client',
         actions = {},
-        routes = {},
         states = {},
         head = noop,
         body = noop,
+        routes = config,
         storeName
       } = config
 
