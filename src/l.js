@@ -939,7 +939,9 @@ window.DEBUG = true
               // If all else fails, just append the node to the body
               l('body').append(node)
             }
-            
+
+            // Finally, scroll the page up to the top.
+            window.scroll(0,0)
           })
         }).catch( err => {
           console.error(err)
