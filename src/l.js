@@ -578,23 +578,24 @@ window.DEBUG = true
 
     trigger (eventName, detail) {
       const nativeEvents = [
-        'mouseenter'
+        'change'
+      , 'click'
+      , 'contextmenu'
+      , 'dblclick'
+      , 'input'
+      , 'keyup'
+      , 'keydown'
+      , 'keypress'
+      , 'mouseleave'
+      , 'mouseout'
+      , 'mouseenter'
       , 'mouseover'
       , 'mousemove'
       , 'mousedown'
       , 'mouseup'
-      , 'click'
-      , 'dblclick'
-      , 'contextmenu'
-      , 'wheel'
-      , 'mouseleave'
-      , 'mouseout'
       , 'select'
       , 'submit'
-      , 'change'
-      , 'keyup'
-      , 'keydown'
-      , 'keypress'
+      , 'wheel'
       ]
       if (~nativeEvents.indexOf(eventName)) {
         this.forEach( elem => {
@@ -1126,6 +1127,8 @@ window.DEBUG = true
           case 'client':
             // change <a>'s to <button>'s for semantic correctness
             l('a').each( elem => {
+              // return on absolute links
+              if (/^http/.test(elem.getAttribute('href'))) return;
               const 
                 $anchor = l(elem), 
                 classes = $anchor.attr('class'),
@@ -1144,7 +1147,6 @@ window.DEBUG = true
               })        
             })
           break
-
         }
 
         Object.assign(cbProvider.store, {
