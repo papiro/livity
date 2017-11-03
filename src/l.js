@@ -252,7 +252,9 @@ window.DEBUG = true
               // If all else fails, just append the node to the body
               l('body').append(node)
             }
-            
+
+            // Finally, scroll the page up to the top.
+            window.scroll(0,0)
           })
         }).catch( err => {
           console.error(err)
@@ -348,10 +350,10 @@ window.DEBUG = true
         recoverable = false,
         rendering = 'client',
         actions = {},
-        routes = {},
         states = {},
         head = noop,
         body = noop,
+        routes = config,
         storeName
       } = config
 
@@ -437,10 +439,13 @@ window.DEBUG = true
           case 'client':
             // change <a>'s to <button>'s for semantic correctness
             l('a').each( elem => {
+              // return on absolute links
+              if (/^http/.test(elem.getAttribute('href'))) return;
               const 
                 $anchor = l(elem), 
+                classes = $anchor.attr('class'),
                 $children = $anchor.children().detach(),
-                $button = l.create(`<button data-route=${$anchor.attr('href')}>`, true).append($children)
+                $button = l.create(`<button data-route=${$anchor.attr('href')} ${classes ? 'class=\"' + classes + '"' : ''}>`, true).append($children)
               ;
               $anchor.insertAfter($button).remove()
             })
@@ -454,7 +459,6 @@ window.DEBUG = true
               })        
             })
           break
-
         }
 
         Object.assign(cbProvider.store, {
@@ -509,6 +513,7 @@ window.DEBUG = true
           console.debug('did nothing; already at route ', route)
           return
         }
+        if (!this.routes[route]) throw new ReferenceError(`No route by the name of ${route} defined.`)
         this.routes[route].load(this.states[route])
       })      
     }
