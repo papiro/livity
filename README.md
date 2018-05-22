@@ -1,4 +1,9 @@
-LivityFramework is under active development, yet it is useful in its current form.  In your app's js file, you would do:
+LivityFramework is defunct-under active development-.  
+
+### It is left here for historical reasons and also as a showcase to my abilities as a javascript programmer. If you look a few commits ago, you'll see that I basically was rewriting jQuery, but only to support standard browsers, including IE11+. I had a selector engine and over two dozen DOM manipulation methods, as well as eventing with delegation. It was a lot of fun!  
+
+-----------------------------
+In your app's js file, you would do:
 ```
     new Livity({
       head () {}, // logic you want to run before the DOM is ready
